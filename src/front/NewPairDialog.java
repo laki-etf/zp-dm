@@ -73,6 +73,10 @@ public class NewPairDialog extends JDialog {
 	private JLabel publExpLabel;
 	private JLabel privExpLabel;
 	private JPanel exponentPanel;
+	private JLabel errorLabel;
+	private JPanel panel;
+	private JLabel modLabel;
+	private JLabel modValLabel;
 
 	/**
 	 * Launch the application.
@@ -96,7 +100,7 @@ public class NewPairDialog extends JDialog {
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		getContentPane().add(contentPanel, BorderLayout.CENTER);
-		contentPanel.setLayout(new GridLayout(0, 2, 0, 0));
+		contentPanel.setLayout(new GridLayout(0, 2, 10, 0));
 		{
 			JPanel dataPanel = new JPanel();
 			contentPanel.add(dataPanel);
@@ -358,7 +362,8 @@ public class NewPairDialog extends JDialog {
 			pairPanel.setLayout(new BorderLayout(0, 0));
 			{
 				exponentPanel = new JPanel();
-				pairPanel.add(exponentPanel, BorderLayout.SOUTH);
+				pairPanel.add(exponentPanel, BorderLayout.NORTH);
+				exponentPanel.setLayout(new GridLayout(0, 1, 0, 10));
 				{
 					privExpLabel = new JLabel("Private Exponent:");
 					exponentPanel.add(privExpLabel);
@@ -367,6 +372,26 @@ public class NewPairDialog extends JDialog {
 					publExpLabel = new JLabel("Public Exponent:");
 					exponentPanel.add(publExpLabel);
 				}
+			}
+			{
+				panel = new JPanel();
+				pairPanel.add(panel, BorderLayout.CENTER);
+				panel.setLayout(new BorderLayout(0, 0));
+				{
+					modLabel = new JLabel("Modul:");
+					panel.add(modLabel, BorderLayout.NORTH);
+				}
+				{
+					modValLabel = new JLabel("");
+					panel.add(modValLabel, BorderLayout.CENTER);
+				}
+			}
+			{
+				errorLabel = new JLabel("");
+				errorLabel.setHorizontalAlignment(SwingConstants.CENTER);
+				errorLabel.setFont(new Font("Dialog", Font.BOLD, 15));
+				errorLabel.setForeground(UIManager.getColor("OptionPane.errorDialog.border.background"));
+				pairPanel.add(errorLabel, BorderLayout.SOUTH);
 			}
 		}
 		{
