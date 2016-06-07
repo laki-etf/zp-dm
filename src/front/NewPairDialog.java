@@ -79,19 +79,6 @@ public class NewPairDialog extends JDialog {
 	private JLabel modValLabel;
 
 	/**
-	 * Launch the application.
-	 */
-	public static void main(String[] args) {
-		try {
-			NewPairDialog dialog = new NewPairDialog();
-			dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-			dialog.setVisible(true);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
 	 * Create the dialog.
 	 */
 	public NewPairDialog() {
@@ -411,6 +398,7 @@ public class NewPairDialog extends JDialog {
 			}
 			{
 				JButton saveButton = new JButton("Save");
+				saveButton.setEnabled(false);
 				saveButton.setActionCommand("Save");
 				buttonPane.add(saveButton);
 				getRootPane().setDefaultButton(saveButton);
@@ -419,6 +407,7 @@ public class NewPairDialog extends JDialog {
 				JButton cancelButton = new JButton("Cancel");
 				cancelButton.setActionCommand("Cancel");
 				buttonPane.add(cancelButton);
+				setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 			}
 		}
 	}

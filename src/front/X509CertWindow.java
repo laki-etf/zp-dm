@@ -4,16 +4,24 @@ import java.awt.EventQueue;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.JPasswordField;
 import javax.swing.JScrollPane;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.BoxLayout;
 import javax.swing.JList;
+import javax.swing.JTextField;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 public class X509CertWindow {
-
 	private JFrame frame;
 
 	/**
@@ -58,12 +66,66 @@ public class X509CertWindow {
 		
 		JButton newPairButton = new JButton("New Pair");
 		Buttons.add(newPairButton);
-		
-		JButton exportPairButton = new JButton("Export Pair");
-		Buttons.add(exportPairButton);
+		newPairButton.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				new NewPairDialog().setVisible(true);
+			}
+		});
 		
 		JButton importPairButton = new JButton("Import Pair");
 		Buttons.add(importPairButton);
+		importPairButton.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser chooser = new JFileChooser();
+//			    FileNameExtensionFilter filter = new FileNameExtensionFilter(
+//			        "JPG & GIF Images", "jpg", "gif");
+//			    chooser.setFileFilter(filter);
+			    int returnVal = chooser.showOpenDialog(frame);
+			    if(returnVal == JFileChooser.APPROVE_OPTION) {
+			    	JLabel jPassword = new JLabel("Password");
+			        JTextField password = new JPasswordField();
+			        Object[] ob = {jPassword, password};
+			        int result = JOptionPane.showConfirmDialog(null, ob, "Password", JOptionPane.OK_CANCEL_OPTION);
+			        String passwordValue="";
+			        if (result == JOptionPane.OK_OPTION) {
+			            passwordValue = password.getText();
+			        }
+			       System.out.println("You chose to open this file: " +
+			            chooser.getSelectedFile().getName());
+			    }
+				
+			}
+		});
+		
+		JButton exportPairButton = new JButton("Export Pair");
+		Buttons.add(exportPairButton);
+		exportPairButton.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser chooser = new JFileChooser();
+//			    FileNameExtensionFilter filter = new FileNameExtensionFilter(
+//			        "JPG & GIF Images", "jpg", "gif");
+//			    chooser.setFileFilter(filter);
+			    int returnVal = chooser.showSaveDialog(frame);
+			    if(returnVal == JFileChooser.APPROVE_OPTION) {
+			    	JLabel jPassword = new JLabel("Password");
+			        JTextField password = new JPasswordField();
+			        Object[] ob = {jPassword, password};
+			        int result = JOptionPane.showConfirmDialog(null, ob, "Password", JOptionPane.OK_CANCEL_OPTION);
+			        String passwordValue="";
+			        if (result == JOptionPane.OK_OPTION) {
+			            passwordValue = password.getText();
+			        }
+			       System.out.println("You chose to open this file: " +
+			            chooser.getSelectedFile().getName()+passwordValue);
+			    }
+			}
+		});
 		
 		JButton signCertButton = new JButton("Sign Certificate");
 		Buttons.add(signCertButton);
@@ -83,6 +145,22 @@ public class X509CertWindow {
 		
 		JButton exportCertButton = new JButton("Export Certificate");
 		certPanel.add(exportCertButton, BorderLayout.SOUTH);
+		exportCertButton.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser chooser = new JFileChooser();
+//			    FileNameExtensionFilter filter = new FileNameExtensionFilter(
+//			        "JPG & GIF Images", "jpg", "gif");
+//			    chooser.setFileFilter(filter);
+			    int returnVal = chooser.showSaveDialog(frame);
+			    if(returnVal == JFileChooser.APPROVE_OPTION) {
+			       System.out.println("You chose to open this file: " +
+			            chooser.getSelectedFile().getName());
+			       
+			    }
+			}
+		});
 		
 		JPanel pairPanel = new JPanel();
 		frame.getContentPane().add(pairPanel);
