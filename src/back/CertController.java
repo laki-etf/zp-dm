@@ -52,6 +52,7 @@ import front.CertificateInfo;
 public class CertController {
 
     private CertCore cc;
+    public final String aliasCA = "tatatamara";
     private HashMap<String, PKCS10CertificationRequest> setCSRs;
 
     public CertController(String pathToDefaultKeyStore,
@@ -60,19 +61,19 @@ public class CertController {
         setCSRs = new HashMap<String, PKCS10CertificationRequest>();
         File defaultKSFile = new File(pathToDefaultKeyStore);
         if(!defaultKSFile.exists()) {
-            cc.generateEmptyKeyStore(pathToDefaultKeyStore,
-                    passwordDefaultKeyStore);
+            cc.generateDefaultKeyStore(pathToDefaultKeyStore,
+                    passwordDefaultKeyStore, aliasCA);
         }
 
-        cc.loadDefaultKeyStore(pathToDefaultKeyStore, passwordDefaultKeyStore);
+        cc.loadDefaultKeyStore(pathToDefaultKeyStore, passwordDefaultKeyStore, aliasCA);
     }
 
-    public void generatePairOfKeys(Integer keySize, Date dateFrom, Date dateTo,
+    public void generatePairOfKeys(String alias, Integer keySize, Date dateFrom, Date dateTo,
             BigInteger serialNumber, String commonName,
             String organizationalUnit, String organizationalName,
             String localityName, String stateName, String countryName,
             String emailAddress) {
-        cc.generatePairOfKeys(keySize, dateFrom, dateTo, serialNumber,
+        cc.generatePairOfKeys(alias, keySize, dateFrom, dateTo, serialNumber,
                 commonName, organizationalUnit, organizationalName,
                 localityName, stateName, countryName, emailAddress);
     }
@@ -110,21 +111,21 @@ public class CertController {
             Enumeration<String> enumeration = keyStore.aliases();
 
             while (enumeration.hasMoreElements()) {
-                String commonName = (String) enumeration.nextElement();
+                String alias = (String) enumeration.nextElement();
                 X509Certificate certificate = (X509Certificate) keyStore
-                        .getCertificate(commonName);
+                        .getCertificate(alias);
 
                 PublicKey publicKey = certificate.getPublicKey();
-                PrivateKey privateKey = (PrivateKey) keyStore.getKey(
-                        commonName, null);
+                PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias,
+                        null);
                 X500Name x500name = new JcaX509CertificateHolder(certificate)
                         .getSubject();
 
                 HashMap<String, String> attributes = cc.readX500Name(x500name);
 
-                CertificateInfo certificateInfo = new CertificateInfo(publicKey
-                        .toString().length(), certificate.getNotAfter(),
-                        certificate.getNotBefore(),
+                CertificateInfo certificateInfo = new CertificateInfo(alias,
+                        privateKey.getEncoded().length,
+                        certificate.getNotAfter(), certificate.getNotBefore(),
                         certificate.getSerialNumber(),
                         attributes.get("commonName"),
                         attributes.get("organizationalUnit"),

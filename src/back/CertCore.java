@@ -43,6 +43,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.RSAPublicKeySpec;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -56,10 +57,12 @@ public class CertCore {
     private static byte[] iv = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     private KeyStore keyStore;
+    private String aliasCA;
 
     public CertCore() {
         try {
             keyStore = null;
+            aliasCA = null;
             keyStore = KeyStore.getInstance("PKCS12", "BC");
             keyStore.load(null, null);
 
@@ -93,10 +96,10 @@ public class CertCore {
 
         return caBuilder.build();
     }
-    
+
     public HashMap<String, String> readX500Name(X500Name x500name) {
         HashMap<String, String> r = new HashMap<String, String>();
-        
+
         r.put("commonName", x500name.getRDNs(BCStyle.CN)[0].toString());
         r.put("organizationalUnit", x500name.getRDNs(BCStyle.OU)[0].toString());
         r.put("organizationalName", x500name.getRDNs(BCStyle.O)[0].toString());
@@ -142,7 +145,45 @@ public class CertCore {
         }
     }
 
-    public void loadDefaultKeyStore(String path, String password) {
+    public void generateDefaultKeyStore(String path, String password,
+            String aliasCA) {
+        try {
+            //stvaranje sertifikata kojim potpisujemo
+            Date referenceDate = new Date(System.currentTimeMillis());
+            Calendar c = Calendar.getInstance();
+            c.setTime(referenceDate);
+            c.add(Calendar.MONTH, -6);
+            Date dateFrom = c.getTime();
+            c.add(Calendar.MONTH, 36);
+            Date dateTo = c.getTime();
+            generatePairOfKeys(aliasCA, 1024, dateFrom, dateTo, BigInteger.ONE,
+                    aliasCA + "Name", "organizationalUnit",
+                    "organizationalName", "localityName", "stateName",
+                    "countryName", aliasCA + "@etf.rs");
+            this.aliasCA = aliasCA;
+
+            File file = new File(path);
+
+            SecretKeySpec secretKeySpec = buildSecretKeySpec(password);
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+
+            IvParameterSpec ivspec = new IvParameterSpec(iv);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivspec);
+
+            CipherOutputStream cipherOutputStream = new CipherOutputStream(
+                    new FileOutputStream(file), cipher);
+
+            keyStore.store(cipherOutputStream, password.toCharArray());
+
+            cipherOutputStream.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void loadDefaultKeyStore(String path, String password, String aliasCA) {
         try {
             File file = new File(path);
 
@@ -160,15 +201,37 @@ public class CertCore {
 
             Enumeration<String> enumeration = keyStore.aliases();
 
+            boolean existsCA = false;
             while (enumeration.hasMoreElements()) {
-                String commonName = (String) enumeration.nextElement();
+                String alias = (String) enumeration.nextElement();
+                if(alias.equals(aliasCA)) {
+                    existsCA = true;
+                    this.aliasCA = aliasCA;
+                }
+
                 X509Certificate certificate = (X509Certificate) keyStore
-                        .getCertificate(commonName);
+                        .getCertificate(alias);
                 PublicKey publicKey = certificate.getPublicKey();
-                PrivateKey privateKey = (PrivateKey) keyStore.getKey(
-                        commonName, null);
+                PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias,
+                        null);
                 X500Name x500name = new JcaX509CertificateHolder(certificate)
                         .getSubject();
+            }
+            //ako ne postoji sertifikat kojim potpisujemo
+            if(!existsCA) {
+                //stvaranje sertifikata kojim potpisujemo
+                Date referenceDate = new Date(System.currentTimeMillis());
+                Calendar c = Calendar.getInstance();
+                c.setTime(referenceDate);
+                c.add(Calendar.MONTH, -6);
+                Date dateFrom = c.getTime();
+                c.add(Calendar.MONTH, 12);
+                Date dateTo = c.getTime();
+                generatePairOfKeys(aliasCA, 1024, dateFrom, dateTo,
+                        BigInteger.ONE, aliasCA + "Name", "organizationalUnit",
+                        "organizationalName", "localityName", "stateName",
+                        "countryName", aliasCA + "@etf.rs");
+                this.aliasCA = aliasCA;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -176,11 +239,11 @@ public class CertCore {
     }
 
     //TODO extenzije
-    public void generatePairOfKeys(Integer keySize, Date dateFrom, Date dateTo,
-            BigInteger serialNumber, String commonName,
-            String organizationalUnit, String organizationalName,
-            String localityName, String stateName, String countryName,
-            String emailAddress) {
+    public void generatePairOfKeys(String alias, Integer keySize,
+            Date dateFrom, Date dateTo, BigInteger serialNumber,
+            String commonName, String organizationalUnit,
+            String organizationalName, String localityName, String stateName,
+            String countryName, String emailAddress) {
         try {
             KeyPair keyPair = generateRSAKeyPair(keySize);
             ContentSigner selfSigner = new JcaContentSignerBuilder(
@@ -199,37 +262,13 @@ public class CertCore {
             X509Certificate certificate = new JcaX509CertificateConverter()
                     .setProvider("BC").getCertificate(certificateHolder);
 
-            keyStore.setCertificateEntry(commonName, certificate);
-            keyStore.setKeyEntry(commonName, keyPair.getPrivate(), null,
+            keyStore.setCertificateEntry(alias, certificate);
+            keyStore.setKeyEntry(alias, keyPair.getPrivate(), null,
                     new X509Certificate[] { certificate });
 
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    PKCS10CertificationRequest generateCSR(String commonName) {
-        try {
-
-            X509Certificate certificate = (X509Certificate) keyStore
-                    .getCertificate(commonName);
-            PublicKey publicKey = certificate.getPublicKey();
-            PrivateKey privateKey = (PrivateKey) keyStore.getKey(commonName,
-                    null);
-            X500Name subject = new JcaX509CertificateHolder(certificate)
-                    .getSubject();
-            PKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(
-                    subject, publicKey);
-
-            ContentSigner contentSigner = new JcaContentSignerBuilder(
-                    "SHA1WithRSA").build(privateKey);
-
-            return csrBuilder.build(contentSigner);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     public void importKeyStoreWithAES(String path, String password) {
@@ -254,15 +293,15 @@ public class CertCore {
             Enumeration<String> enumeration = importKeyStore.aliases();
 
             while (enumeration.hasMoreElements()) {
-                String commonName = (String) enumeration.nextElement();
+                String alias = (String) enumeration.nextElement();
                 X509Certificate certificate = (X509Certificate) importKeyStore
-                        .getCertificate(commonName);
-                PrivateKey privateKey = (PrivateKey) keyStore.getKey(
-                        commonName, null);
+                        .getCertificate(alias);
+                PrivateKey privateKey = (PrivateKey) importKeyStore.getKey(
+                        alias, null);
 
                 //dodavanje u defaultKeyStore
-                keyStore.setCertificateEntry(commonName, certificate);
-                keyStore.setKeyEntry(commonName, privateKey, null,
+                keyStore.setCertificateEntry(alias, certificate);
+                keyStore.setKeyEntry(alias, privateKey, null,
                         new X509Certificate[] { certificate });
             }
         } catch (Exception e) {
@@ -286,15 +325,15 @@ public class CertCore {
             Enumeration<String> enumeration = importKeyStore.aliases();
 
             while (enumeration.hasMoreElements()) {
-                String commonName = (String) enumeration.nextElement();
+                String alias = (String) enumeration.nextElement();
                 X509Certificate certificate = (X509Certificate) importKeyStore
-                        .getCertificate(commonName);
-                PrivateKey privateKey = (PrivateKey) keyStore.getKey(
-                        commonName, null);
+                        .getCertificate(alias);
+                PrivateKey privateKey = (PrivateKey) importKeyStore.getKey(
+                        alias, null);
 
                 //dodavanje u defaultKeyStore
-                keyStore.setCertificateEntry(commonName, certificate);
-                keyStore.setKeyEntry(commonName, privateKey, null,
+                keyStore.setCertificateEntry(alias, certificate);
+                keyStore.setKeyEntry(alias, privateKey, null,
                         new X509Certificate[] { certificate });
             }
         } catch (Exception e) {
@@ -302,6 +341,121 @@ public class CertCore {
         }
     }
 
+    public void exportToPKCS12WithAES(String path, String password) {
+        try {
+            File file = new File(path);
+
+            SecretKeySpec secretKeySpec = buildSecretKeySpec(password);
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+
+            IvParameterSpec ivspec = new IvParameterSpec(iv);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivspec);
+
+            CipherOutputStream cipherOutputStream = new CipherOutputStream(
+                    new FileOutputStream(file), cipher);
+
+            keyStore.store(cipherOutputStream, password.toCharArray());
+
+            cipherOutputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void exportToPKCS12NoAES(String path, String password) {
+        try {
+            File file = new File(path);
+
+            FileOutputStream fileOutputStream = new FileOutputStream(file);
+
+            keyStore.store(fileOutputStream, password.toCharArray());
+
+            fileOutputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    PKCS10CertificationRequest generateCSR(String alias) {
+        try {
+
+            X509Certificate certificate = (X509Certificate) keyStore
+                    .getCertificate(alias);
+            PublicKey publicKey = certificate.getPublicKey();
+            PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias, null);
+            X500Name subject = new JcaX509CertificateHolder(certificate)
+                    .getSubject();
+            PKCS10CertificationRequestBuilder csrBuilder = new JcaPKCS10CertificationRequestBuilder(
+                    subject, publicKey);
+
+            ContentSigner contentSigner = new JcaContentSignerBuilder(
+                    "SHA1WithRSA").build(privateKey);
+
+            return csrBuilder.build(contentSigner);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public X509Certificate signX509Certificate(
+            PKCS10CertificationRequest request) {
+        try {
+            RSAKeyParameters rsa = (RSAKeyParameters) PublicKeyFactory
+                    .createKey(request.getSubjectPublicKeyInfo());
+            RSAPublicKeySpec rsaSpec = new RSAPublicKeySpec(rsa.getModulus(),
+                    rsa.getExponent());
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            PublicKey rsaPublicKeyOfSubject = keyFactory
+                    .generatePublic(rsaSpec);
+
+            ContentVerifierProvider contentVerifierProvider = new JcaContentVerifierProviderBuilder()
+                    .setProvider("BC").build(rsaPublicKeyOfSubject);
+
+            if(!request.isSignatureValid(contentVerifierProvider)) {
+                throw new Exception("CSR signature invalid!");
+            }
+
+            X509Certificate caCertificate = (X509Certificate) keyStore
+                    .getCertificate(aliasCA);
+            X500Name issuer = new JcaX509CertificateHolder(caCertificate)
+                    .getSubject();
+            PrivateKey privateKeyCA = (PrivateKey) keyStore.getKey(aliasCA,
+                    null);
+
+            //davanje perioda validnosti sertifikatu
+            Date referenceDate = new Date(System.currentTimeMillis());
+            Calendar c = Calendar.getInstance();
+            c.setTime(referenceDate);
+            c.add(Calendar.MONTH, -1);
+            Date dateFrom = c.getTime();
+            c.add(Calendar.MONTH, 12);
+            Date dateTo = c.getTime();
+
+            X509v3CertificateBuilder v3CertificateBuilder = new JcaX509v3CertificateBuilder(
+                    issuer, BigInteger.ONE, dateFrom, dateTo,
+                    request.getSubject(), rsaPublicKeyOfSubject);
+
+            ContentSigner signerCA = new JcaContentSignerBuilder("SHA1WithRSA")
+                    .build(privateKeyCA);
+
+            X509CertificateHolder certificateHolder = v3CertificateBuilder
+                    .build(signerCA);
+
+            return new JcaX509CertificateConverter().setProvider("BC")
+                    .getCertificate(certificateHolder);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    
+    
     public KeyStore getKeyStore() {
         return keyStore;
     }

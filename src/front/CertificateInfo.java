@@ -5,6 +5,7 @@ import java.util.Date;
 
 public class CertificateInfo {
 
+    private String alias;
     private Integer keySize;
     private String version = "v3";
     private Date dateFrom;
@@ -20,11 +21,12 @@ public class CertificateInfo {
     private String publicKey;
     private String privateKey;
 
-    public CertificateInfo(Integer keySize, Date dateFrom, Date dateTo,
+    public CertificateInfo(String alias, Integer keySize, Date dateFrom, Date dateTo,
             BigInteger serialNumber, String commonName,
             String organizationalUnit, String organizationalName,
             String localityName, String stateName, String countryName,
             String emailAddress, String publicKey, String privateKey) {
+        this.alias = alias;
         this.keySize = keySize;
         this.dateFrom = dateFrom;
         this.dateTo = dateTo;
@@ -50,6 +52,14 @@ public class CertificateInfo {
     
     
     //GET & SET
+    public String getAlias() {
+        return alias;
+    }
+    
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
+    
     public Integer getKeySize() {
         return keySize;
     }
