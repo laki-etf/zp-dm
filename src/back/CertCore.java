@@ -1,23 +1,48 @@
 package back;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.PrintWriter;
+import java.math.BigInteger;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.Security;
+import java.security.cert.X509Certificate;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.RSAPublicKeySpec;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashMap;
+
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.asn1.x509.GeneralNames;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
-import org.bouncycastle.crypto.tls.HashAlgorithm;
 import org.bouncycastle.crypto.util.PublicKeyFactory;
 import org.bouncycastle.jcajce.io.CipherInputStream;
 import org.bouncycastle.jcajce.io.CipherOutputStream;
-import org.bouncycastle.jce.X509KeyUsage;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -28,25 +53,6 @@ import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
-
-import java.io.*;
-import java.math.BigInteger;
-import java.security.*;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.RSAPublicKeySpec;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.HashMap;
 
 public class CertCore {
 
@@ -205,18 +211,11 @@ public class CertCore {
             boolean existsCA = false;
             while (enumeration.hasMoreElements()) {
                 String alias = (String) enumeration.nextElement();
+                //postoji li sertifikat kojim bi potpisivali
                 if(alias.equals(aliasCA)) {
                     existsCA = true;
                     this.aliasCA = aliasCA;
                 }
-
-                X509Certificate certificate = (X509Certificate) keyStore
-                        .getCertificate(alias);
-                PublicKey publicKey = certificate.getPublicKey();
-                PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias,
-                        null);
-                X500Name x500name = new JcaX509CertificateHolder(certificate)
-                        .getSubject();
             }
             //ako ne postoji sertifikat kojim potpisujemo
             if(!existsCA) {
@@ -299,10 +298,11 @@ public class CertCore {
                         .getCertificate(alias);
                 PrivateKey privateKey = (PrivateKey) importKeyStore.getKey(
                         alias, null);
-                
+
                 if(keyStore.containsAlias(alias)) {
                     keyStore.deleteEntry(alias);
-                    System.out.println("Alias: " + alias + " pregazen novim pri import.");
+                    System.out.println("Alias: " + alias
+                            + " pregazen novim pri import.");
                 }
                 //dodavanje u defaultKeyStore
                 keyStore.setCertificateEntry(alias, certificate);
@@ -337,7 +337,8 @@ public class CertCore {
 
                 if(keyStore.containsAlias(alias)) {
                     keyStore.deleteEntry(alias);
-                    System.out.println("Alias: " + alias + " pregazen novim pri import.");
+                    System.out.println("Alias: " + alias
+                            + " pregazen novim pri import.");
                 }
                 //dodavanje u defaultKeyStore
                 keyStore.setCertificateEntry(alias, certificate);
@@ -378,6 +379,143 @@ public class CertCore {
             FileOutputStream fileOutputStream = new FileOutputStream(file);
 
             keyStore.store(fileOutputStream, password.toCharArray());
+
+            fileOutputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void importKeyPairWithAES(String alias, String path, String password) {
+        try {
+            KeyStore importKeyStore = KeyStore.getInstance("PKCS12", "BC");
+
+            SecretKeySpec secretKeySpec = buildSecretKeySpec(password);
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            IvParameterSpec ivspec = new IvParameterSpec(iv);
+            cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, ivspec);
+
+            File file = new File(path);
+
+            CipherInputStream cipherInputStream = new CipherInputStream(
+                    new FileInputStream(file), cipher);
+
+            importKeyStore.load(cipherInputStream, password.toCharArray());
+
+            cipherInputStream.close();
+
+            Enumeration<String> enumeration = importKeyStore.aliases();
+
+            if(enumeration.hasMoreElements()) {
+                String oldAlias = (String) enumeration.nextElement();
+                X509Certificate certificate = (X509Certificate) importKeyStore
+                        .getCertificate(oldAlias);
+                PrivateKey privateKey = (PrivateKey) importKeyStore.getKey(
+                        oldAlias, null);
+
+                if(keyStore.containsAlias(alias)) {
+                    keyStore.deleteEntry(alias);
+                    System.out.println("Alias: " + alias
+                            + " pregazen novim pri import.");
+                }
+                //dodavanje u defaultKeyStore
+                keyStore.setCertificateEntry(alias, certificate);
+                keyStore.setKeyEntry(alias, privateKey, null,
+                        new X509Certificate[] { certificate });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void importKeyPairNoAES(String alias, String path, String password) {
+        try {
+            KeyStore importKeyStore = KeyStore.getInstance("PKCS12", "BC");
+
+            File file = new File(path);
+
+            FileInputStream fileInputStream = new FileInputStream(file);
+
+            importKeyStore.load(fileInputStream, password.toCharArray());
+
+            fileInputStream.close();
+
+            Enumeration<String> enumeration = importKeyStore.aliases();
+
+            if(enumeration.hasMoreElements()) {
+                String oldAlias = (String) enumeration.nextElement();
+                X509Certificate certificate = (X509Certificate) importKeyStore
+                        .getCertificate(oldAlias);
+                PrivateKey privateKey = (PrivateKey) importKeyStore.getKey(
+                        oldAlias, null);
+
+                if(keyStore.containsAlias(alias)) {
+                    keyStore.deleteEntry(alias);
+                    System.out.println("Alias: " + alias
+                            + " pregazen novim pri import.");
+                }
+                //dodavanje u defaultKeyStore
+                keyStore.setCertificateEntry(alias, certificate);
+                keyStore.setKeyEntry(alias, privateKey, null,
+                        new X509Certificate[] { certificate });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void exportToPKCS12WithAES(String alias, String path, String password) {
+        try {
+            // novi keyStore koji ima samo odabrani sertifikat
+            KeyStore exportKeyStore = KeyStore.getInstance("PKCS12", "BC");
+            exportKeyStore.load(null, null);
+
+            X509Certificate certificate = (X509Certificate) keyStore
+                    .getCertificate(alias);
+            PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias, null);
+            exportKeyStore.setCertificateEntry(alias, certificate);
+            exportKeyStore.setKeyEntry(alias, privateKey, null,
+                    new X509Certificate[] { certificate });
+
+            File file = new File(path);
+
+            SecretKeySpec secretKeySpec = buildSecretKeySpec(password);
+
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+
+            IvParameterSpec ivspec = new IvParameterSpec(iv);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKeySpec, ivspec);
+
+            CipherOutputStream cipherOutputStream = new CipherOutputStream(
+                    new FileOutputStream(file), cipher);
+
+            exportKeyStore.store(cipherOutputStream, password.toCharArray());
+
+            cipherOutputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void exportToPKCS12NoAES(String alias, String path, String password) {
+        try {
+         // novi keyStore koji ima samo odabrani sertifikat
+            KeyStore exportKeyStore = KeyStore.getInstance("PKCS12", "BC");
+            exportKeyStore.load(null, null);
+
+            X509Certificate certificate = (X509Certificate) keyStore
+                    .getCertificate(alias);
+            PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias, null);
+            exportKeyStore.setCertificateEntry(alias, certificate);
+            exportKeyStore.setKeyEntry(alias, privateKey, null,
+                    new X509Certificate[] { certificate });
+            
+            File file = new File(path);
+
+            FileOutputStream fileOutputStream = new FileOutputStream(file);
+
+            exportKeyStore.store(fileOutputStream, password.toCharArray());
 
             fileOutputStream.close();
         } catch (Exception e) {
@@ -466,7 +604,7 @@ public class CertCore {
         try {
             X509Certificate certificate = (X509Certificate) keyStore
                     .getCertificate(alias);
-            
+
             X509Certificate caCertificate = (X509Certificate) keyStore
                     .getCertificate(aliasCA);
             certificate.verify(caCertificate.getPublicKey());

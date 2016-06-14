@@ -1,51 +1,27 @@
 package back;
 
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.X500NameBuilder;
-import org.bouncycastle.asn1.x500.style.BCStyle;
-import org.bouncycastle.asn1.x509.BasicConstraints;
-import org.bouncycastle.asn1.x509.Extension;
-import org.bouncycastle.asn1.x509.GeneralName;
-import org.bouncycastle.asn1.x509.GeneralNames;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.X509v3CertificateBuilder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
-import org.bouncycastle.crypto.params.RSAKeyParameters;
-import org.bouncycastle.crypto.util.PublicKeyFactory;
-import org.bouncycastle.jcajce.io.CipherInputStream;
-import org.bouncycastle.jcajce.io.CipherOutputStream;
-import org.bouncycastle.jce.X509KeyUsage;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.ContentVerifierProvider;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
-import org.bouncycastle.pkcs.PKCS10CertificationRequest;
-import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
-import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
-
-import java.io.*;
+import java.io.File;
+import java.io.StringWriter;
 import java.math.BigInteger;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.KeyStore;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SignatureException;
 import java.security.cert.X509Certificate;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.RSAPublicKeySpec;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
+
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
+import org.bouncycastle.crypto.params.RSAKeyParameters;
+import org.bouncycastle.crypto.util.PublicKeyFactory;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 
 import front.CertificateInfo;
 
@@ -54,10 +30,16 @@ public class CertController {
     private CertCore cc;
     public final String aliasCA = "tamara";
     private HashMap<String, PKCS10CertificationRequest> setCSRs;
+    private String pathDefault;
+    private String passwordDefault;
 
+    // kontroler se instancira sa zapamcenim stanjem, ako ne postoji on pravi novo
     public CertController(String pathToDefaultKeyStore,
             String passwordDefaultKeyStore) {
         cc = new CertCore();
+        pathDefault = pathToDefaultKeyStore;
+        passwordDefault = passwordDefaultKeyStore;
+        
         setCSRs = new HashMap<String, PKCS10CertificationRequest>();
         File defaultKSFile = new File(pathToDefaultKeyStore);
         if(!defaultKSFile.exists()) {
@@ -69,6 +51,12 @@ public class CertController {
                 aliasCA);
     }
 
+    // pri zatvaranju aplikacije treba zapamtiti stanje ! ! ! !
+    public void saveChangesToDefaultKeyStore() {
+        cc.exportToPKCS12WithAES(pathDefault, passwordDefault);
+    }
+    
+    // stvara par kljuceva (tj. sertifikat; SVE JE SERTIFIKAT)
     public void generatePairOfKeys(String alias, Integer keySize,
             Date dateFrom, Date dateTo, BigInteger serialNumber,
             String commonName, String organizationalUnit,
@@ -79,48 +67,61 @@ public class CertController {
                 localityName, stateName, countryName, emailAddress);
     }
 
+    // postoji neki magacin sertifikata koji ja odrzavam
+    // on moze da ima nula, jedan ili n sertifikata
+    
+    // ucitava zapamceni magacin u vidu fajla i dodaje trenutnom stanju
     public void importKeyStoreWithAES(String path, String password) {
         cc.importKeyStoreWithAES(path, password);
     }
 
+    // isto to bez dekriptovanja
+    // sifra ipak treba jer se magacin uvek zakljucava pri pamcenju u vidu fajla
+    public void importKeyPairNoAES(String alias, String path, String password) {
+        cc.importKeyPairNoAES(alias, path, password);
+    }
+
+    // ucitava zapamceni magacin koji podrazumevano ima jedan sertifikat
+    public void importKeyPairWithAES(String alias, String path, String password) {
+        cc.importKeyPairWithAES(alias, path, password);
+    }
+
+    // isto to samo bez dekriptovanja
     public void importKeyStoreNoAES(String path, String password) {
         cc.importKeyStoreNoAES(path, password);
     }
 
+    // pamti magacin sertifikata 
     public void exportToPKCS12WithAES(String path, String password) {
         cc.exportToPKCS12WithAES(path, password);
     }
 
+    // isto to bez kriptovanja
     public void exportToPKCS12NoAES(String path, String password) {
         cc.exportToPKCS12NoAES(path, password);
     }
 
-    public void signX509Certificate(String alias) {
-        //potpisivanje na osnovu zahteva
-        X509Certificate certificate = cc
-                .signX509Certificate(setCSRs.get(alias));
-
-        try {
-            KeyStore keyStore = cc.getKeyStore();
-            Key privateKey = keyStore.getKey(alias, null);
-            //cuvanje novog potpisanog sertifikata na mesto starog
-            keyStore.setCertificateEntry(alias, certificate);
-            keyStore.setKeyEntry(alias, privateKey, null,
-                    new X509Certificate[] { certificate });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    // pamti magacin koji ima samo jedan izabrani sertifikat
+    public void exportKeyPairToPKCS12WithAES(String alias, String path, String password) {
+        cc.exportToPKCS12WithAES(alias, path, password);
     }
 
+    // isto to bez kriptovanja
+    public void exportKeyPairToPKCS12NoAES(String alias, String path, String password) {
+        cc.exportToPKCS12NoAES(alias, path, password);
+    }
+
+    // stvara zahtev za potpisivanje sertifikata
     public void generateCSR(String alias) {
         PKCS10CertificationRequest generatedCSR = cc.generateCSR(alias);
         setCSRs.put(alias, generatedCSR);
     }
 
-    public String previewCSR(String commonName) {
+    // ispis zahteva za potpisivanje sertifikata kao dokaz da postoji
+    public String previewCSR(String alias) {
         String stringCSR = null;
         try {
-            PKCS10CertificationRequest request = setCSRs.get(commonName);
+            PKCS10CertificationRequest request = setCSRs.get(alias);
 
             StringWriter writer = new StringWriter();
             JcaPEMWriter pem = new JcaPEMWriter(writer);
@@ -136,6 +137,39 @@ public class CertController {
         return stringCSR;
     }
 
+    // potpisivanje sertifikata
+    public void signX509Certificate(String alias) {
+        //potpisivanje na osnovu zahteva
+        X509Certificate certificate = cc
+                .signX509Certificate(setCSRs.get(alias));
+
+        try {
+            KeyStore keyStore = cc.getKeyStore();
+            Key privateKey = keyStore.getKey(alias, null);
+            //cuvanje novog potpisanog sertifikata na mesto starog
+            keyStore.deleteEntry(alias);
+            keyStore.setCertificateEntry(alias, certificate);
+            keyStore.setKeyEntry(alias, privateKey, null,
+                    new X509Certificate[] { certificate });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    // izvoz sertifikata
+    public void exportX509Certificate(String alias, String path) {
+        cc.exportX509Certificate(alias, path);
+    }
+    
+    // uvoz sertifikata pod nekim aliasom
+    public void importX509Certificate(String alias, String path) {
+        cc.importX509Certificate(alias, path);
+    }
+    
+    // ovo je tebi najbitnije
+    // daje ti listu sa podacima o sertifikatima koji su trenutni
+    // kad pozoves neku funkciju pozovi ponovo ovo da ti vrati svezu listu
+    // ako ti ova funkcija nije ddovoljno prakticna mogu da dodam jos nesto
     public List<CertificateInfo> getCertificateInfoList(boolean fgCAappears) {
         List<CertificateInfo> list = new ArrayList<CertificateInfo>();
 
@@ -194,6 +228,7 @@ public class CertController {
         return list;
     }
 
+    // za test potrebe; ispisuje listu u konzolu
     public void ispis(List<CertificateInfo> list) {
         for (CertificateInfo ci : list) {
             System.out.println("CERT");
@@ -201,9 +236,11 @@ public class CertController {
         }
     }
 
+    
+    // util stvari
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
-    public static String bytesToHex(byte[] bytes) {
+    private static String bytesToHex(byte[] bytes) {
         char[] hexChars = new char[bytes.length * 2];
         for (int j = 0; j < bytes.length; j++) {
             int v = bytes[j] & 0xFF;
