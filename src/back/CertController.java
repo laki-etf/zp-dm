@@ -65,22 +65,56 @@ public class CertController {
                     passwordDefaultKeyStore, aliasCA);
         }
 
-        cc.loadDefaultKeyStore(pathToDefaultKeyStore, passwordDefaultKeyStore, aliasCA);
+        cc.loadDefaultKeyStore(pathToDefaultKeyStore, passwordDefaultKeyStore,
+                aliasCA);
     }
 
-    public void generatePairOfKeys(String alias, Integer keySize, Date dateFrom, Date dateTo,
-            BigInteger serialNumber, String commonName,
-            String organizationalUnit, String organizationalName,
-            String localityName, String stateName, String countryName,
-            String emailAddress) {
+    public void generatePairOfKeys(String alias, Integer keySize,
+            Date dateFrom, Date dateTo, BigInteger serialNumber,
+            String commonName, String organizationalUnit,
+            String organizationalName, String localityName, String stateName,
+            String countryName, String emailAddress) {
         cc.generatePairOfKeys(alias, keySize, dateFrom, dateTo, serialNumber,
                 commonName, organizationalUnit, organizationalName,
                 localityName, stateName, countryName, emailAddress);
     }
 
-    public void generateCSR(String commonName) {
-        PKCS10CertificationRequest generatedCSR = cc.generateCSR(commonName);
-        setCSRs.put(commonName, generatedCSR);
+    public void importKeyStoreWithAES(String path, String password) {
+        cc.importKeyStoreWithAES(path, password);
+    }
+
+    public void importKeyStoreNoAES(String path, String password) {
+        cc.importKeyStoreNoAES(path, password);
+    }
+
+    public void exportToPKCS12WithAES(String path, String password) {
+        cc.exportToPKCS12WithAES(path, password);
+    }
+
+    public void exportToPKCS12NoAES(String path, String password) {
+        cc.exportToPKCS12NoAES(path, password);
+    }
+
+    public void signX509Certificate(String alias) {
+        //potpisivanje na osnovu zahteva
+        X509Certificate certificate = cc
+                .signX509Certificate(setCSRs.get(alias));
+
+        try {
+            KeyStore keyStore = cc.getKeyStore();
+            Key privateKey = keyStore.getKey(alias, null);
+            //cuvanje novog potpisanog sertifikata na mesto starog
+            keyStore.setCertificateEntry(alias, certificate);
+            keyStore.setKeyEntry(alias, privateKey, null,
+                    new X509Certificate[] { certificate });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void generateCSR(String alias) {
+        PKCS10CertificationRequest generatedCSR = cc.generateCSR(alias);
+        setCSRs.put(alias, generatedCSR);
     }
 
     public String previewCSR(String commonName) {
@@ -102,16 +136,21 @@ public class CertController {
         return stringCSR;
     }
 
-    public List<CertificateInfo> getCertificateInfoList() {
+    public List<CertificateInfo> getCertificateInfoList(boolean fgCAappears) {
         List<CertificateInfo> list = new ArrayList<CertificateInfo>();
 
         KeyStore keyStore = cc.getKeyStore();
 
         try {
+            X509Certificate caCertificate = (X509Certificate) keyStore
+                    .getCertificate(aliasCA);
             Enumeration<String> enumeration = keyStore.aliases();
 
             while (enumeration.hasMoreElements()) {
                 String alias = (String) enumeration.nextElement();
+                if(alias.equals(aliasCA) && !fgCAappears)
+                    continue;
+
                 X509Certificate certificate = (X509Certificate) keyStore
                         .getCertificate(alias);
 
@@ -123,6 +162,13 @@ public class CertController {
 
                 HashMap<String, String> attributes = cc.readX500Name(x500name);
 
+                boolean isPotpisan = true;
+                try {
+                    certificate.verify(caCertificate.getPublicKey());
+                } catch (InvalidKeyException e) {
+                    isPotpisan = false;
+                }
+
                 CertificateInfo certificateInfo = new CertificateInfo(alias,
                         privateKey.getEncoded().length,
                         certificate.getNotAfter(), certificate.getNotBefore(),
@@ -133,8 +179,9 @@ public class CertController {
                         attributes.get("localityName"),
                         attributes.get("stateName"),
                         attributes.get("countryName"),
-                        attributes.get("emailAddress"), publicKey.toString(),
-                        privateKey.toString());
+                        attributes.get("emailAddress"),
+                        bytesToHex(publicKey.getEncoded()),
+                        bytesToHex(privateKey.getEncoded()), isPotpisan);
                 list.add(certificateInfo);
             }
         } catch (Exception e) {
@@ -144,4 +191,22 @@ public class CertController {
         return list;
     }
 
+    public void ispis(List<CertificateInfo> list) {
+        for (CertificateInfo ci : list) {
+            System.out.println("CERT");
+            System.out.println(ci.toString());
+        }
+    }
+    
+    final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
+
+    public static String bytesToHex(byte[] bytes) {
+        char[] hexChars = new char[bytes.length * 2];
+        for (int j = 0; j < bytes.length; j++) {
+            int v = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
+        }
+        return new String(hexChars);
+    }
 }

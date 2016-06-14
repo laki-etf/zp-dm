@@ -11,7 +11,7 @@ public class mainProgram {
         String path = "resources/defaultKeyStore.p12";
         String password = "password";
         CertController controller = new CertController(path, password);
-        
+        controller.ispis(controller.getCertificateInfoList(true));
     }
 
 }

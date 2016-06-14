@@ -97,6 +97,7 @@ public class CertCore {
         return caBuilder.build();
     }
 
+    //TODO ovo ne valja plus extenzije
     public HashMap<String, String> readX500Name(X500Name x500name) {
         HashMap<String, String> r = new HashMap<String, String>();
 
@@ -309,7 +310,6 @@ public class CertCore {
         }
     }
 
-    //TODO proveriti pamcenje keyStore bez sifre
     public void importKeyStoreNoAES(String path, String password) {
         try {
             KeyStore importKeyStore = KeyStore.getInstance("PKCS12", "BC");
@@ -454,8 +454,50 @@ public class CertCore {
         return null;
     }
 
-    
-    
+    public void exportX509Certificate(String alias, String path) {
+        try {
+            X509Certificate certificate = (X509Certificate) keyStore
+                    .getCertificate(alias);
+            
+            X509Certificate caCertificate = (X509Certificate) keyStore
+                    .getCertificate(aliasCA);
+            certificate.verify(caCertificate.getPublicKey());
+
+            PrintWriter writer = new PrintWriter(path);
+            JcaPEMWriter pem = new JcaPEMWriter(writer);
+            pem.writeObject(certificate);
+            pem.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    //TODO dodavanje u keyStore
+    public X509Certificate importX509Certificate(String alias, String path) {
+        try {
+            File testFile = new File(path);
+
+            if(!testFile.exists()) {
+                throw new Exception("File does not exists!");
+            }
+
+            FileReader reader = new FileReader(path);
+
+            PEMParser parser = new PEMParser(reader);
+            X509CertificateHolder x509CertificateHolder = (X509CertificateHolder) parser
+                    .readObject();
+            parser.close();
+
+            X509Certificate certificate = new JcaX509CertificateConverter()
+                    .setProvider("BC").getCertificate(x509CertificateHolder);
+
+            return certificate;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public KeyStore getKeyStore() {
         return keyStore;
     }

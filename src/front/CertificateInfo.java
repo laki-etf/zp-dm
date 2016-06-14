@@ -1,6 +1,8 @@
 package front;
 
 import java.math.BigInteger;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class CertificateInfo {
@@ -20,12 +22,13 @@ public class CertificateInfo {
     private String emailAddress;
     private String publicKey;
     private String privateKey;
+    private boolean isSigned;
 
     public CertificateInfo(String alias, Integer keySize, Date dateFrom, Date dateTo,
             BigInteger serialNumber, String commonName,
             String organizationalUnit, String organizationalName,
             String localityName, String stateName, String countryName,
-            String emailAddress, String publicKey, String privateKey) {
+            String emailAddress, String publicKey, String privateKey, boolean isSigned) {
         this.alias = alias;
         this.keySize = keySize;
         this.dateFrom = dateFrom;
@@ -40,9 +43,28 @@ public class CertificateInfo {
         this.emailAddress = emailAddress;
         this.publicKey = publicKey;
         this.privateKey = privateKey;
+        this.isSigned = isSigned;
     }
     
-    
+    @Override
+    public String toString() {
+        DateFormat df = new SimpleDateFormat("dd.MM.yyyy.");
+        return ("alias " + alias + "\n" +
+                "keySize " + keySize + "\n" +
+                "dateFrom " + df.format(dateFrom) + "\n" +
+                "dateTo " + df.format(dateTo) + "\n" +
+                "serialNumber " + serialNumber + "\n" +
+                "commonName " + commonName + "\n" +
+                "organizationalUnit " + organizationalUnit + "\n" +
+                "organizationalName " + organizationalName + "\n" +
+                "localityName " + localityName + "\n" +
+                "stateName " + stateName + "\n" +
+                "countryName " + countryName + "\n" +
+                "emailAddress " + emailAddress + "\n" +
+                "publicKey " + publicKey + "\n" +
+                "privateKey " + privateKey + "\n" +
+                "isSigned " + isSigned + "\n");
+    }
     
     
     
@@ -166,5 +188,13 @@ public class CertificateInfo {
 
     public String getVersion() {
         return version;
+    }
+
+    public boolean isSigned() {
+        return isSigned;
+    }
+
+    public void setSigned(boolean isSigned) {
+        this.isSigned = isSigned;
     }
 }
