@@ -9,6 +9,7 @@ import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -19,10 +20,21 @@ import javax.swing.JLabel;
 import javax.swing.BoxLayout;
 import javax.swing.JList;
 import javax.swing.JTextField;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
+import javax.swing.ListSelectionModel;
+
+import back.CertController;
 
 public class X509CertWindow {
 	private JFrame frame;
+	private JList pairList;
+	private JButton exportPairButton;
+	private JButton detailsButton;
+	private final String path = "resources/defaultKeyStore.p12";
+    private final String password = "password";
+    private  CertController controller = new CertController(path, password);
 
 	/**
 	 * Launch the application.
@@ -55,7 +67,6 @@ public class X509CertWindow {
 		frame.setBounds(100, 100, 650, 400);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(new GridLayout(0, 2, 0, 0));
-		
 		JPanel panel = new JPanel();
 		frame.getContentPane().add(panel);
 		panel.setLayout(new GridLayout(0, 1, 0, 0));
@@ -101,7 +112,8 @@ public class X509CertWindow {
 			}
 		});
 		
-		JButton exportPairButton = new JButton("Export Pair");
+		exportPairButton = new JButton("Export Pair");
+		exportPairButton.setEnabled(false);
 		Buttons.add(exportPairButton);
 		exportPairButton.addActionListener(new ActionListener() {
 			
@@ -127,7 +139,12 @@ public class X509CertWindow {
 			}
 		});
 		
+		detailsButton = new JButton("Pair Details");
+		detailsButton.setEnabled(false);
+		Buttons.add(detailsButton);
+		
 		JButton signCertButton = new JButton("Sign Certificate");
+		signCertButton.setEnabled(false);
 		Buttons.add(signCertButton);
 		
 		JPanel certPanel = new JPanel();
@@ -141,9 +158,11 @@ public class X509CertWindow {
 		certPanel.add(certScrollPane, BorderLayout.CENTER);
 		
 		JList certList = new JList();
+		certList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		certScrollPane.setColumnHeaderView(certList);
 		
 		JButton exportCertButton = new JButton("Export Certificate");
+		exportCertButton.setEnabled(false);
 		certPanel.add(exportCertButton, BorderLayout.SOUTH);
 		exportCertButton.addActionListener(new ActionListener() {
 			
@@ -172,8 +191,19 @@ public class X509CertWindow {
 		JScrollPane pairScrollPane = new JScrollPane();
 		pairPanel.add(pairScrollPane, BorderLayout.CENTER);
 		
-		JList pairList = new JList();
+		pairList = new JList();
+		pairList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		pairScrollPane.setViewportView(pairList);
+		pairList.setListData(controller.getCertificateInfoList(true).toArray());
+		pairList.addListSelectionListener(new ListSelectionListener() {
+			
+			@Override
+			public void valueChanged(ListSelectionEvent e) {
+				//String s=(String) pairList.getSelectedValue();
+				//System.out.print(s);
+				exportPairButton.setEnabled(true);
+				detailsButton.setEnabled(true);
+			}
+		});
 	}
-
 }
