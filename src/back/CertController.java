@@ -169,8 +169,11 @@ public class CertController {
                     isPotpisan = false;
                 }
 
+                RSAKeyParameters rsa = (RSAKeyParameters) PublicKeyFactory
+                        .createKey(publicKey.getEncoded());
+
                 CertificateInfo certificateInfo = new CertificateInfo(alias,
-                        privateKey.getEncoded().length,
+                        rsa.getModulus().bitLength(),
                         certificate.getNotAfter(), certificate.getNotBefore(),
                         certificate.getSerialNumber(),
                         attributes.get("commonName"),
@@ -197,7 +200,7 @@ public class CertController {
             System.out.println(ci.toString());
         }
     }
-    
+
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
 
     public static String bytesToHex(byte[] bytes) {

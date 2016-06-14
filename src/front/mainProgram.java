@@ -12,6 +12,11 @@ public class mainProgram {
         String password = "password";
         CertController controller = new CertController(path, password);
         controller.ispis(controller.getCertificateInfoList(true));
+        controller.importKeyStoreWithAES(path, password);
+        controller.ispis(controller.getCertificateInfoList(true));
+        
+        
+        
     }
 
 }

@@ -299,7 +299,11 @@ public class CertCore {
                         .getCertificate(alias);
                 PrivateKey privateKey = (PrivateKey) importKeyStore.getKey(
                         alias, null);
-
+                
+                if(keyStore.containsAlias(alias)) {
+                    keyStore.deleteEntry(alias);
+                    System.out.println("Alias: " + alias + " pregazen novim pri import.");
+                }
                 //dodavanje u defaultKeyStore
                 keyStore.setCertificateEntry(alias, certificate);
                 keyStore.setKeyEntry(alias, privateKey, null,
@@ -331,6 +335,10 @@ public class CertCore {
                 PrivateKey privateKey = (PrivateKey) importKeyStore.getKey(
                         alias, null);
 
+                if(keyStore.containsAlias(alias)) {
+                    keyStore.deleteEntry(alias);
+                    System.out.println("Alias: " + alias + " pregazen novim pri import.");
+                }
                 //dodavanje u defaultKeyStore
                 keyStore.setCertificateEntry(alias, certificate);
                 keyStore.setKeyEntry(alias, privateKey, null,
