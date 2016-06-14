@@ -52,7 +52,7 @@ import front.CertificateInfo;
 public class CertController {
 
     private CertCore cc;
-    public final String aliasCA = "tatatamara";
+    public final String aliasCA = "tamara";
     private HashMap<String, PKCS10CertificationRequest> setCSRs;
 
     public CertController(String pathToDefaultKeyStore,
@@ -165,7 +165,7 @@ public class CertController {
                 boolean isPotpisan = true;
                 try {
                     certificate.verify(caCertificate.getPublicKey());
-                } catch (InvalidKeyException e) {
+                } catch (InvalidKeyException|SignatureException e) {
                     isPotpisan = false;
                 }
 
