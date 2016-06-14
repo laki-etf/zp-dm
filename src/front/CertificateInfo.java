@@ -46,8 +46,7 @@ public class CertificateInfo {
         this.isSigned = isSigned;
     }
     
-    @Override
-    public String toString() {
+    public String ispis() {
         DateFormat df = new SimpleDateFormat("dd.MM.yyyy.");
         return ("alias " + alias + "\n" +
                 "keySize " + keySize + "\n" +
@@ -66,7 +65,12 @@ public class CertificateInfo {
                 "isSigned " + isSigned + "\n");
     }
     
-    
+    @Override
+    public String toString(){
+    	String s="";
+    	if(isSigned)s = " - signed"; 
+    	return alias+s;
+    }
     
     
     

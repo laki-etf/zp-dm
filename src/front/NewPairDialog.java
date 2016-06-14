@@ -10,26 +10,52 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.JTextField;
 import javax.swing.JLabel;
 import javax.swing.UIManager;
+
 import java.awt.GridLayout;
+
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
+
 import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
 import javax.swing.SpinnerDateModel;
+
+import java.math.BigInteger;
 import java.util.Date;
 import java.util.Calendar;
+import java.util.Random;
+
 import javax.swing.JCheckBox;
 import javax.swing.JEditorPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 
+import back.CertController;
+
 public class NewPairDialog extends JDialog {
 
+	private class EmptyException extends Exception {
+		private String field;
+		
+		 public EmptyException(String f) {
+			field=f;
+		}
+		
+		@Override
+		public String getMessage() {
+			return "Field "+field+" SHOULD NOT be EMPTY! ";
+		}
+	}
+	
 	private final JPanel contentPanel = new JPanel();
 	private JTextField textField;
 	private JLabel nameLabel;
 	private JLabel versionLabel;
+	private JTextField serNumField;
 	private JTextField cTextField;
 	private JTextField stField;
 	private JLabel serNumLabel;
@@ -68,7 +94,6 @@ public class NewPairDialog extends JDialog {
 	private JCheckBox keyUsageCheckBox;
 	private JLabel placeHolderLabel6;
 	private JLabel necessaryLabel;
-	private JButton genKeyButton;
 	private JPanel pairPanel;
 	private JLabel publExpLabel;
 	private JLabel privExpLabel;
@@ -77,20 +102,28 @@ public class NewPairDialog extends JDialog {
 	private JPanel panel;
 	private JLabel modLabel;
 	private JLabel modValLabel;
-
+	private CertController controller;
+	private JTextField eTextField;
 	/**
 	 * Create the dialog.
+	 * @throws EmptyException 
 	 */
-	public NewPairDialog() {
+	void isEmpty(String field, String val) throws EmptyException{
+		if((val == null)||val.isEmpty())throw new EmptyException(field);
+	}
+	
+	
+	public NewPairDialog(CertController c) {
+		controller=c;
 		setTitle("Generate New Pair");
-		setBounds(100, 100, 750, 700);
+		setBounds(100, 100, 600, 800);
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		getContentPane().add(contentPanel, BorderLayout.CENTER);
-		contentPanel.setLayout(new GridLayout(0, 2, 10, 0));
+		contentPanel.setLayout(new BorderLayout(0, 0));
 		{
 			JPanel dataPanel = new JPanel();
-			contentPanel.add(dataPanel);
+			contentPanel.add(dataPanel, BorderLayout.CENTER);
 			dataPanel.setLayout(new GridLayout(0, 2, 0, 0));
 			{
 				versionLabel = new JLabel("Version*:");
@@ -109,10 +142,10 @@ public class NewPairDialog extends JDialog {
 				dataPanel.add(serNumLabel);
 			}
 			{
-				JSpinner serNumSpinner = new JSpinner();
-				serNumLabel.setLabelFor(serNumSpinner);
-				serNumSpinner.setModel(new SpinnerNumberModel(new Integer(0), new Integer(0), null, new Integer(1)));
-				dataPanel.add(serNumSpinner);
+				Random r=new Random();
+				serNumField = new JTextField(""+r.nextInt());
+				serNumLabel.setLabelFor(serNumField);
+				dataPanel.add(serNumField);
 			}
 			{
 				signAlgLabel = new JLabel("Signature Algorithm*: ");
@@ -203,6 +236,16 @@ public class NewPairDialog extends JDialog {
 				cnTextField.setColumns(10);
 			}
 			{
+				JLabel eLabel = new JLabel("E*:");
+				eLabel.setForeground(UIManager.getColor("OptionPane.errorDialog.titlePane.foreground"));
+				dataPanel.add(eLabel);
+			}
+			{
+				eTextField = new JTextField();
+				dataPanel.add(eTextField);
+				eTextField.setColumns(10);
+			}
+			{
 				JLabel validityLabel = new JLabel("Validity:");
 				validityLabel.setForeground(UIManager.getColor("CheckBoxMenuItem.acceleratorForeground"));
 				validityLabel.setFont(new Font("Dialog", Font.BOLD, 14));
@@ -220,7 +263,7 @@ public class NewPairDialog extends JDialog {
 			{
 				notBeforespinner = new JSpinner();
 				notBeforeLabel.setLabelFor(notBeforespinner);
-				notBeforespinner.setModel(new SpinnerDateModel(new Date(1465164000000L), null, null, Calendar.DAY_OF_YEAR));
+				notBeforespinner.setModel(new SpinnerDateModel(new Date(), null, null, Calendar.DAY_OF_YEAR));
 				dataPanel.add(notBeforespinner);
 			}
 			{
@@ -232,7 +275,7 @@ public class NewPairDialog extends JDialog {
 			{
 				notAfterSpinner = new JSpinner();
 				notAfterLabel.setLabelFor(notAfterSpinner);
-				notAfterSpinner.setModel(new SpinnerDateModel(new Date(1465164000000L), null, null, Calendar.DAY_OF_YEAR));
+				notAfterSpinner.setModel(new SpinnerDateModel(new Date(), null, null, Calendar.DAY_OF_YEAR));
 				dataPanel.add(notAfterSpinner);
 			}
 			{
@@ -331,50 +374,21 @@ public class NewPairDialog extends JDialog {
 				keyUsageCheckBox = new JCheckBox("critical");
 				dataPanel.add(keyUsageCheckBox);
 			}
-			{
-				necessaryLabel = new JLabel("* - fields are necessary!");
-				necessaryLabel.setHorizontalAlignment(SwingConstants.CENTER);
-				necessaryLabel.setForeground(UIManager.getColor("OptionPane.errorDialog.titlePane.foreground"));
-				necessaryLabel.setFont(new Font("Dialog", Font.BOLD, 11));
-				dataPanel.add(necessaryLabel);
-			}
-			{
-				genKeyButton = new JButton("Generate Pair");
-				dataPanel.add(genKeyButton);
-			}
 		}
 		{
 			pairPanel = new JPanel();
-			contentPanel.add(pairPanel);
+			contentPanel.add(pairPanel, BorderLayout.SOUTH);
 			pairPanel.setLayout(new BorderLayout(0, 0));
 			{
-				exponentPanel = new JPanel();
-				pairPanel.add(exponentPanel, BorderLayout.NORTH);
-				exponentPanel.setLayout(new GridLayout(0, 1, 0, 10));
-				{
-					privExpLabel = new JLabel("Private Exponent:");
-					exponentPanel.add(privExpLabel);
-				}
-				{
-					publExpLabel = new JLabel("Public Exponent:");
-					exponentPanel.add(publExpLabel);
-				}
+				necessaryLabel = new JLabel("* - fields are necessary!");
+				pairPanel.add(necessaryLabel, BorderLayout.NORTH);
+				necessaryLabel.setHorizontalAlignment(SwingConstants.CENTER);
+				necessaryLabel.setForeground(UIManager.getColor("OptionPane.errorDialog.titlePane.foreground"));
+				necessaryLabel.setFont(new Font("Dialog", Font.BOLD, 11));
 			}
+			
 			{
-				panel = new JPanel();
-				pairPanel.add(panel, BorderLayout.CENTER);
-				panel.setLayout(new BorderLayout(0, 0));
-				{
-					modLabel = new JLabel("Modul:");
-					panel.add(modLabel, BorderLayout.NORTH);
-				}
-				{
-					modValLabel = new JLabel("");
-					panel.add(modValLabel, BorderLayout.CENTER);
-				}
-			}
-			{
-				errorLabel = new JLabel("");
+				errorLabel = new JLabel("  ");
 				errorLabel.setHorizontalAlignment(SwingConstants.CENTER);
 				errorLabel.setFont(new Font("Dialog", Font.BOLD, 15));
 				errorLabel.setForeground(UIManager.getColor("OptionPane.errorDialog.border.background"));
@@ -397,15 +411,57 @@ public class NewPairDialog extends JDialog {
 				textField.setColumns(10);
 			}
 			{
-				JButton saveButton = new JButton("Save");
-				saveButton.setEnabled(false);
-				saveButton.setActionCommand("Save");
-				buttonPane.add(saveButton);
-				getRootPane().setDefaultButton(saveButton);
+				JButton generateButton = new JButton("Generate");
+				generateButton.setActionCommand("Generate");
+				generateButton.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						try {
+							String alias = textField.getText();
+							isEmpty("Name", alias);
+							Integer keySize = (int)keySizeSpinner.getValue();
+							Date dateFrom = (Date) notBeforespinner.getValue();
+							Date dateTo = (Date) notAfterSpinner.getValue();
+							BigInteger serialNumber = new BigInteger(serNumField.getText(), 10);
+							String commonName = cnTextField.getText();
+							isEmpty("cn", commonName);
+							String organizationalUnit = ouTextField.getText();
+							isEmpty("ou", organizationalUnit);
+							String organizationalName = oField.getText();
+							isEmpty("o", organizationalName);
+							String localityName = lTextField.getText();
+							isEmpty("l", localityName);
+							String stateName = stField.getText();
+							isEmpty("st", stateName);
+							String countryName = cTextField.getText();
+							isEmpty("c", countryName);
+							String emailAddress = eTextField.getText();
+							isEmpty("e", emailAddress);
+							controller.generatePairOfKeys(alias, keySize, dateFrom, dateTo,
+									serialNumber, commonName, organizationalUnit, organizationalName,
+									localityName, stateName, countryName, emailAddress);
+							dispose();
+						} catch (EmptyException e1) {
+							errorLabel.setText(e1.getMessage());
+						} catch (NumberFormatException en){
+							errorLabel.setText("In filed serial number should be intiger value with radix 10");
+						}
+					}
+				});
+				buttonPane.add(generateButton);
+				getRootPane().setDefaultButton(generateButton);
 			}
 			{
 				JButton cancelButton = new JButton("Cancel");
 				cancelButton.setActionCommand("Cancel");
+				cancelButton.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						dispose();
+					}
+				});
 				buttonPane.add(cancelButton);
 				setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 			}

@@ -232,7 +232,7 @@ public class CertController {
     public void ispis(List<CertificateInfo> list) {
         for (CertificateInfo ci : list) {
             System.out.println("CERT");
-            System.out.println(ci.toString());
+            System.out.println(ci.ispis());
         }
     }
 

@@ -9,8 +9,11 @@ import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.util.ArrayList;
 
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
@@ -32,9 +35,12 @@ public class X509CertWindow {
 	private JList pairList;
 	private JButton exportPairButton;
 	private JButton detailsButton;
+	private JButton signCertButton;
+	private JButton exportCertButton;
 	private final String path = "resources/defaultKeyStore.p12";
     private final String password = "password";
     private  CertController controller = new CertController(path, password);
+    private CertificateInfo selectedPair;
 
 	/**
 	 * Launch the application.
@@ -57,6 +63,20 @@ public class X509CertWindow {
 	 */
 	public X509CertWindow() {
 		initialize();
+	}
+	public void refreshButtons(){
+		selectedPair = (CertificateInfo) pairList.getSelectedValue();
+		if(selectedPair!=null){
+			exportPairButton.setEnabled(true);
+			detailsButton.setEnabled(true);
+			signCertButton.setEnabled(true);
+			if(selectedPair.isSigned())exportCertButton.setEnabled(true);
+		} else{
+			exportPairButton.setEnabled(false);
+			detailsButton.setEnabled(false);
+			signCertButton.setEnabled(false);
+			exportCertButton.setEnabled(false);
+		}
 	}
 
 	/**
@@ -81,7 +101,41 @@ public class X509CertWindow {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				new NewPairDialog().setVisible(true);
+				JDialog d=new NewPairDialog(controller);
+				d.setVisible(true);
+				d.addWindowListener(new WindowListener() {
+					
+					@Override
+					public void windowOpened(WindowEvent e) {	
+					}
+					
+					@Override
+					public void windowIconified(WindowEvent e) {
+					}
+					
+					@Override
+					public void windowDeiconified(WindowEvent e) {
+					}
+					
+					@Override
+					public void windowDeactivated(WindowEvent e) {	
+					}
+					
+					@Override
+					public void windowClosing(WindowEvent e) {
+					}
+					
+					@Override
+					public void windowClosed(WindowEvent e) {
+						pairList.setListData(controller.getCertificateInfoList(false).toArray());
+						refreshButtons();
+					}
+					
+					@Override
+					public void windowActivated(WindowEvent e) {
+					}
+				});
+				
 			}
 		});
 		
@@ -92,9 +146,8 @@ public class X509CertWindow {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				JFileChooser chooser = new JFileChooser();
-//			    FileNameExtensionFilter filter = new FileNameExtensionFilter(
-//			        "JPG & GIF Images", "jpg", "gif");
-//			    chooser.setFileFilter(filter);
+			    FileNameExtensionFilter filter = new FileNameExtensionFilter("PKCS12 certificates", "p12");
+			    chooser.addChoosableFileFilter(filter);
 			    int returnVal = chooser.showOpenDialog(frame);
 			    if(returnVal == JFileChooser.APPROVE_OPTION) {
 			    	JLabel jPassword = new JLabel("Password");
@@ -104,9 +157,14 @@ public class X509CertWindow {
 			        String passwordValue="";
 			        if (result == JOptionPane.OK_OPTION) {
 			            passwordValue = password.getText();
+			            if(passwordValue.isEmpty()){
+			            	controller.importKeyStoreNoAES(chooser.getSelectedFile().getPath(), passwordValue);
+			            } else {
+			            	controller.importKeyStoreWithAES(chooser.getSelectedFile().getPath(), passwordValue);
+			            }
+			            pairList.setListData(controller.getCertificateInfoList(false).toArray());
+						refreshButtons();
 			        }
-			       System.out.println("You chose to open this file: " +
-			            chooser.getSelectedFile().getName());
 			    }
 				
 			}
@@ -120,8 +178,7 @@ public class X509CertWindow {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				JFileChooser chooser = new JFileChooser();
-//			    FileNameExtensionFilter filter = new FileNameExtensionFilter(
-//			        "JPG & GIF Images", "jpg", "gif");
+//			    FileNameExtensionFilter filter = new FileNameExtensionFilter("p12");
 //			    chooser.setFileFilter(filter);
 			    int returnVal = chooser.showSaveDialog(frame);
 			    if(returnVal == JFileChooser.APPROVE_OPTION) {
@@ -132,9 +189,17 @@ public class X509CertWindow {
 			        String passwordValue="";
 			        if (result == JOptionPane.OK_OPTION) {
 			            passwordValue = password.getText();
+			            String path = chooser.getSelectedFile().getPath();
+			            if (!path.endsWith(".p12"))
+			                path += ".p12";
+			            if(passwordValue.isEmpty()){
+			            	controller.exportKeyPairToPKCS12NoAES(selectedPair.getAlias(), path, passwordValue);
+			            } else {
+			            	controller.exportKeyPairToPKCS12WithAES(selectedPair.getAlias(), path, passwordValue);
+			            }
+			            pairList.setListData(controller.getCertificateInfoList(false).toArray());
+						refreshButtons();
 			        }
-			       System.out.println("You chose to open this file: " +
-			            chooser.getSelectedFile().getName()+passwordValue);
 			    }
 			}
 		});
@@ -143,27 +208,23 @@ public class X509CertWindow {
 		detailsButton.setEnabled(false);
 		Buttons.add(detailsButton);
 		
-		JButton signCertButton = new JButton("Sign Certificate");
+		signCertButton = new JButton("Sign Certificate");
 		signCertButton.setEnabled(false);
 		Buttons.add(signCertButton);
+		signCertButton.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				controller.signX509Certificate(selectedPair.getAlias());
+				pairList.setListData(controller.getCertificateInfoList(false).toArray());
+				refreshButtons();
+			}
+		});
 		
-		JPanel certPanel = new JPanel();
-		panel.add(certPanel);
-		certPanel.setLayout(new BorderLayout(0, 0));
 		
-		JLabel certLabel = new JLabel("Certificates:");
-		certPanel.add(certLabel, BorderLayout.NORTH);
-		
-		JScrollPane certScrollPane = new JScrollPane();
-		certPanel.add(certScrollPane, BorderLayout.CENTER);
-		
-		JList certList = new JList();
-		certList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		certScrollPane.setColumnHeaderView(certList);
-		
-		JButton exportCertButton = new JButton("Export Certificate");
+		exportCertButton = new JButton("Export Certificate");
 		exportCertButton.setEnabled(false);
-		certPanel.add(exportCertButton, BorderLayout.SOUTH);
+		Buttons.add(exportCertButton);
 		exportCertButton.addActionListener(new ActionListener() {
 			
 			@Override
@@ -194,15 +255,12 @@ public class X509CertWindow {
 		pairList = new JList();
 		pairList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		pairScrollPane.setViewportView(pairList);
-		pairList.setListData(controller.getCertificateInfoList(true).toArray());
+		pairList.setListData(controller.getCertificateInfoList(false).toArray());
 		pairList.addListSelectionListener(new ListSelectionListener() {
 			
 			@Override
 			public void valueChanged(ListSelectionEvent e) {
-				//String s=(String) pairList.getSelectedValue();
-				//System.out.print(s);
-				exportPairButton.setEnabled(true);
-				detailsButton.setEnabled(true);
+				refreshButtons();
 			}
 		});
 	}
