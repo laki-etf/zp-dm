@@ -1,10 +1,17 @@
 package front;
 
+import java.io.File;
+
+import back.CertController;
+
 public class mainProgram {
 
     public static void main(String[] args) {
-        // TODO Auto-generated method stub
-
+        
+        String path = "resources/defaultKeyStore.p12";
+        String password = "password";
+        CertController controller = new CertController(path, password);
+        
     }
 
 }
