@@ -117,6 +117,11 @@ public class CertController {
         if(setCSRs.containsKey(alias)) setCSRs.remove(alias);
         setCSRs.put(alias, generatedCSR);
     }
+    
+    // da li je generisan zahtev za potpisivanje sertifikata
+    public boolean isGeneratedCSR(String alias) {
+        return setCSRs.containsKey(alias);
+    }
 
     // ispis zahteva za potpisivanje sertifikata kao dokaz da postoji
     public String previewCSR(String alias) {
