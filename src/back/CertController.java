@@ -1,6 +1,7 @@
 package back;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
@@ -9,6 +10,7 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SignatureException;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Date;
@@ -22,6 +24,8 @@ import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.util.PublicKeyFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemWriter;
 
 import front.CertificateInfo;
 
@@ -39,7 +43,7 @@ public class CertController {
         cc = new CertCore();
         pathDefault = pathToDefaultKeyStore;
         passwordDefault = passwordDefaultKeyStore;
-        
+
         setCSRs = new HashMap<String, PKCS10CertificationRequest>();
         File defaultKSFile = new File(pathToDefaultKeyStore);
         if(!defaultKSFile.exists()) {
@@ -55,7 +59,7 @@ public class CertController {
     public void saveChangesToDefaultKeyStore() {
         cc.exportToPKCS12WithAES(pathDefault, passwordDefault);
     }
-    
+
     // stvara par kljuceva (tj. sertifikat; SVE JE SERTIFIKAT)
     public void generatePairOfKeys(String alias, Integer keySize,
             Date dateFrom, Date dateTo, BigInteger serialNumber,
@@ -69,7 +73,7 @@ public class CertController {
 
     // postoji neki magacin sertifikata koji ja odrzavam
     // on moze da ima nula, jedan ili n sertifikata
-    
+
     // ucitava zapamceni magacin u vidu fajla i dodaje trenutnom stanju
     public void importKeyStoreWithAES(String path, String password) {
         cc.importKeyStoreWithAES(path, password);
@@ -102,22 +106,25 @@ public class CertController {
     }
 
     // pamti magacin koji ima samo jedan izabrani sertifikat
-    public void exportKeyPairToPKCS12WithAES(String alias, String path, String password) {
+    public void exportKeyPairToPKCS12WithAES(String alias, String path,
+            String password) {
         cc.exportToPKCS12WithAES(alias, path, password);
     }
 
     // isto to bez kriptovanja
-    public void exportKeyPairToPKCS12NoAES(String alias, String path, String password) {
+    public void exportKeyPairToPKCS12NoAES(String alias, String path,
+            String password) {
         cc.exportToPKCS12NoAES(alias, path, password);
     }
 
     // stvara zahtev za potpisivanje sertifikata
     public void generateCSR(String alias) {
         PKCS10CertificationRequest generatedCSR = cc.generateCSR(alias);
-        if(setCSRs.containsKey(alias)) setCSRs.remove(alias);
+        if(setCSRs.containsKey(alias))
+            setCSRs.remove(alias);
         setCSRs.put(alias, generatedCSR);
     }
-    
+
     // da li je generisan zahtev za potpisivanje sertifikata
     public boolean isGeneratedCSR(String alias) {
         return setCSRs.containsKey(alias);
@@ -162,16 +169,51 @@ public class CertController {
         }
     }
 
+    //stampanje sertifikata
+    public String printX509Certificate(String alias) {
+        String certificatePrint = null;
+        try {
+
+            KeyStore keyStore = cc.getKeyStore();
+            X509Certificate certificate = (X509Certificate) keyStore
+                    .getCertificate(alias);
+            
+            certificatePrint = certificate.toString();
+            return certificatePrint;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return certificatePrint;
+    }
+    
+    private String certificateAsPem(X509Certificate x509) throws CertificateEncodingException, IOException {
+        StringWriter sw = new StringWriter();
+        PemWriter writer = new PemWriter(sw);
+        PemObject pemObject = new PemObject("CERTIFICATE", x509.getEncoded());
+        
+        
+        try {
+            writer.writeObject(pemObject);
+            writer.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            writer.close();
+        }
+        return sw.toString();
+    }
+
     // izvoz sertifikata
     public void exportX509Certificate(String alias, String path) {
         cc.exportX509Certificate(alias, path);
     }
-    
+
     // uvoz sertifikata pod nekim aliasom
     public void importX509Certificate(String alias, String path) {
         cc.importX509Certificate(alias, path);
     }
-    
+
     // ovo je tebi najbitnije
     // daje ti listu sa podacima o sertifikatima koji su trenutni
     // kad pozoves neku funkciju pozovi ponovo ovo da ti vrati svezu listu
@@ -205,7 +247,7 @@ public class CertController {
                 boolean isPotpisan = true;
                 try {
                     certificate.verify(caCertificate.getPublicKey());
-                } catch (InvalidKeyException|SignatureException e) {
+                } catch (InvalidKeyException | SignatureException e) {
                     isPotpisan = false;
                 }
 
@@ -242,7 +284,6 @@ public class CertController {
         }
     }
 
-    
     // util stvari
     final protected static char[] hexArray = "0123456789ABCDEF".toCharArray();
 

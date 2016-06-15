@@ -20,7 +20,7 @@ public class mainProgram {
         controller.previewCSR(alias1);
         controller.signX509Certificate(alias1);
         
-        
+        System.out.println(controller.printX509Certificate(alias1));
         
         
         controller.ispis(controller.getCertificateInfoList(true));
