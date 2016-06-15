@@ -14,4 +14,16 @@
 	<natures>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>lib/bcpkix-jdk15on-154.jar</name>
+			<type>1</type>
+			<location>C:/Users/Laki/workspace-eclipse-general/zp-dm/lib/bcpkix-jdk15on-154.jar</location>
+		</link>
+		<link>
+			<name>lib/bcprov-jdk15on-154.jar</name>
+			<type>1</type>
+			<location>C:/Users/Laki/workspace-eclipse-general/zp-dm/lib/bcprov-jdk15on-154.jar</location>
+		</link>
+	</linkedResources>
 </projectDescription>
