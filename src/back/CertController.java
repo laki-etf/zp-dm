@@ -114,6 +114,7 @@ public class CertController {
     // stvara zahtev za potpisivanje sertifikata
     public void generateCSR(String alias) {
         PKCS10CertificationRequest generatedCSR = cc.generateCSR(alias);
+        if(setCSRs.containsKey(alias)) setCSRs.remove(alias);
         setCSRs.put(alias, generatedCSR);
     }
 
