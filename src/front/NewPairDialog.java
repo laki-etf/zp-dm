@@ -439,8 +439,9 @@ public class NewPairDialog extends JDialog {
 							String emailAddress = eTextField.getText();
 							isEmpty("e", emailAddress);
 							controller.generatePairOfKeys(alias, keySize, dateFrom, dateTo,
-									serialNumber, commonName, organizationalUnit, organizationalName,
-									localityName, stateName, countryName, emailAddress);
+							        serialNumber, commonName, organizationalUnit, organizationalName,
+							        localityName, stateName, countryName, emailAddress, false, false,
+							        null, false, false, null, false, false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 							dispose();
 						} catch (EmptyException e1) {
 							errorLabel.setText(e1.getMessage());

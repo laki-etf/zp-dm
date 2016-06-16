@@ -19,9 +19,10 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 
-import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.cert.X509CertificateHolder;
-import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.GeneralName;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.util.PublicKeyFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -72,10 +73,52 @@ public class CertController {
             Date dateFrom, Date dateTo, BigInteger serialNumber,
             String commonName, String organizationalUnit,
             String organizationalName, String localityName, String stateName,
-            String countryName, String emailAddress) {
+            String countryName, String emailAddress, boolean bcIsNeeded,
+            boolean bcIsCA, Integer bcChainLength, boolean bcIsCritical,
+            boolean anIsNeeded, List<String> altNames, boolean anIsCritical,
+            boolean kuIsNeeded, boolean kuIsCritical, int kuDigitalSignature,
+            int kuNonRepudiation, int kuKeyEncipherment,
+            int kuDataEncipherment, int kuKeyAgreement, int kuKeyCertSign,
+            int kuCRLSign, int kuEncipherOnly, int kuDecipherOnly) {
+
+        // basicConstraints
+        BasicConstraints bc = null;
+        if(bcIsNeeded) {
+            if(bcChainLength != null)
+                bc = new BasicConstraints(bcChainLength.intValue());
+            else
+                bc = new BasicConstraints(bcIsCA);
+        }
+        // alternativeNames
+        GeneralNames gn = null;
+        if(anIsNeeded) {
+            GeneralName[] arrayOfGeneralNames = null;
+            if(altNames.size() > 0) {
+                arrayOfGeneralNames = new GeneralName[altNames.size()];
+                for (String altName : altNames) {
+                    arrayOfGeneralNames[altNames.indexOf(altName)] = new GeneralName(
+                            GeneralName.dNSName, altName);
+                }
+                gn = new GeneralNames(arrayOfGeneralNames);
+            }
+        }
+        // keyUsage
+        KeyUsage ku = null;
+        if(kuIsNeeded) {
+            ku = new KeyUsage(kuDigitalSignature * KeyUsage.digitalSignature
+                    | kuNonRepudiation * KeyUsage.nonRepudiation
+                    | kuKeyEncipherment * KeyUsage.keyEncipherment
+                    | kuDataEncipherment * KeyUsage.dataEncipherment
+                    | kuKeyAgreement * KeyUsage.keyAgreement | kuKeyCertSign
+                    * KeyUsage.keyCertSign | kuCRLSign * KeyUsage.cRLSign
+                    | kuEncipherOnly * KeyUsage.encipherOnly | kuDecipherOnly
+                    * KeyUsage.decipherOnly);
+        }
+
         cc.generatePairOfKeys(alias, keySize, dateFrom, dateTo, serialNumber,
                 commonName, organizationalUnit, organizationalName,
-                localityName, stateName, countryName, emailAddress);
+                localityName, stateName, countryName, emailAddress, bc,
+                bcIsCritical, gn, anIsCritical, ku, kuIsCritical);
     }
 
     // postoji neki magacin sertifikata koji ja odrzavam
@@ -244,7 +287,7 @@ public class CertController {
                 PublicKey publicKey = certificate.getPublicKey();
                 PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias,
                         null);
-                
+
                 HashMap<String, String> attributes = cc
                         .readX509Certificate(certificate);
 
@@ -274,10 +317,9 @@ public class CertController {
                 if(isPotpisan)
                     certificateInfo.setSignature(bytesToHex(certificate
                             .getSignature()));
-                
                 certificateInfo.setPreview(certificate.toString());
                 certificateInfo.setPem(certificateAsPem(certificate));
-                
+
                 list.add(certificateInfo);
 
             }

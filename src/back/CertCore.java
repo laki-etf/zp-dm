@@ -34,6 +34,10 @@ import javax.crypto.spec.SecretKeySpec;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.GeneralNames;
+import org.bouncycastle.asn1.x509.KeyUsage;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -43,6 +47,7 @@ import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.util.PublicKeyFactory;
 import org.bouncycastle.jcajce.io.CipherInputStream;
 import org.bouncycastle.jcajce.io.CipherOutputStream;
+import org.bouncycastle.jce.X509KeyUsage;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -104,44 +109,30 @@ public class CertCore {
     }
 
     //TODO ovo ne valja plus extenzije
-    public HashMap<String, String> readX500Name(X500Name x500name) {
-        HashMap<String, String> r = new HashMap<String, String>();
-
-        r.put("commonName", x500name.getRDNs(BCStyle.CN)[0].toString());
-        r.put("organizationalUnit", x500name.getRDNs(BCStyle.OU)[0].toString());
-        r.put("organizationalName", x500name.getRDNs(BCStyle.O)[0].toString());
-        r.put("localityName", x500name.getRDNs(BCStyle.L)[0].toString());
-        r.put("stateName", x500name.getRDNs(BCStyle.ST)[0].toString());
-        r.put("countryName", x500name.getRDNs(BCStyle.C)[0].toString());
-        r.put("emailAddress", x500name.getRDNs(BCStyle.E)[0].toString());
-
-        return r;
-    }
-    
-    //TODO ovo ne valja plus extenzije
     public HashMap<String, String> readX509Certificate(X509Certificate x509Cert) {
         HashMap<String, String> r = new HashMap<String, String>();
 
-        for ( final String field : (x509Cert.getSubjectDN().toString()).split(",") ) {
-            if ( field.startsWith("CN=") ) {
+        for (final String field : (x509Cert.getSubjectDN().toString())
+                .split(",")) {
+            if(field.startsWith("CN=")) {
                 r.put("commonName", field.substring(3));
             }
-            if ( field.startsWith("OU=") ) {
+            if(field.startsWith("OU=")) {
                 r.put("organizationalUnit", field.substring(3));
             }
-            if ( field.startsWith("O=") ) {
+            if(field.startsWith("O=")) {
                 r.put("organizationalName", field.substring(2));
             }
-            if ( field.startsWith("L=") ) {
+            if(field.startsWith("L=")) {
                 r.put("localityName", field.substring(2));
             }
-            if ( field.startsWith("ST=") ) {
+            if(field.startsWith("ST=")) {
                 r.put("stateName", field.substring(3));
             }
-            if ( field.startsWith("C=") ) {
+            if(field.startsWith("C=")) {
                 r.put("countryName", field.substring(2));
             }
-            if ( field.startsWith("E=") ) {
+            if(field.startsWith("E=")) {
                 r.put("emailAddress", field.substring(2));
             }
         }
@@ -195,9 +186,10 @@ public class CertCore {
             c.add(Calendar.MONTH, 36);
             Date dateTo = c.getTime();
             generatePairOfKeys(aliasCA, 1024, dateFrom, dateTo, BigInteger.ONE,
-                    aliasCA + "Name", "organizationalUnit",
+                    aliasCA + " Server", "organizationalUnit",
                     "organizationalName", "localityName", "stateName",
-                    "countryName", aliasCA + "@etf.rs");
+                    "countryName", aliasCA + "@email.rs", null, false, null,
+                    false, null, false);
             this.aliasCA = aliasCA;
 
             File file = new File(path);
@@ -258,10 +250,13 @@ public class CertCore {
                 Date dateFrom = c.getTime();
                 c.add(Calendar.MONTH, 12);
                 Date dateTo = c.getTime();
+
                 generatePairOfKeys(aliasCA, 1024, dateFrom, dateTo,
-                        BigInteger.ONE, aliasCA + "Name", "organizationalUnit",
-                        "organizationalName", "localityName", "stateName",
-                        "countryName", aliasCA + "@etf.rs");
+                        BigInteger.ONE, aliasCA + " Server",
+                        "organizationalUnit", "organizationalName",
+                        "localityName", "stateName", "countryName", aliasCA
+                                + "@email.rs", null, false, null, false, null,
+                        false);
                 this.aliasCA = aliasCA;
             }
         } catch (Exception e) {
@@ -274,7 +269,10 @@ public class CertCore {
             Date dateFrom, Date dateTo, BigInteger serialNumber,
             String commonName, String organizationalUnit,
             String organizationalName, String localityName, String stateName,
-            String countryName, String emailAddress) {
+            String countryName, String emailAddress,
+            BasicConstraints basicConstExt, boolean basicConstCrit,
+            GeneralNames altNameExt, boolean altNameCrit, KeyUsage keyUsageExt,
+            boolean keyUsageCrit) {
         try {
             KeyPair keyPair = generateRSAKeyPair(keySize);
             ContentSigner selfSigner = new JcaContentSignerBuilder(
@@ -287,6 +285,18 @@ public class CertCore {
             X509v3CertificateBuilder v3CertificateBuilder = new JcaX509v3CertificateBuilder(
                     x500Name, serialNumber, dateFrom, dateTo, x500Name,
                     keyPair.getPublic());
+
+            //dodavanje ekstenzija
+            if(basicConstExt != null)
+                v3CertificateBuilder.addExtension(Extension.basicConstraints,
+                        basicConstCrit, basicConstExt);
+            if(altNameExt != null)
+                v3CertificateBuilder.addExtension(
+                        Extension.issuerAlternativeName, altNameCrit,
+                        altNameExt);
+            if(keyUsageExt != null)
+                v3CertificateBuilder.addExtension(Extension.keyUsage,
+                        keyUsageCrit, keyUsageExt);
 
             X509CertificateHolder certificateHolder = v3CertificateBuilder
                     .build(selfSigner);
@@ -531,7 +541,7 @@ public class CertCore {
 
     public void exportToPKCS12NoAES(String alias, String path, String password) {
         try {
-         // novi keyStore koji ima samo odabrani sertifikat
+            // novi keyStore koji ima samo odabrani sertifikat
             KeyStore exportKeyStore = KeyStore.getInstance("PKCS12", "BC");
             exportKeyStore.load(null, null);
 
@@ -541,7 +551,7 @@ public class CertCore {
             exportKeyStore.setCertificateEntry(alias, certificate);
             exportKeyStore.setKeyEntry(alias, privateKey, null,
                     new X509Certificate[] { certificate });
-            
+
             File file = new File(path);
 
             FileOutputStream fileOutputStream = new FileOutputStream(file);
@@ -614,6 +624,13 @@ public class CertCore {
             X509v3CertificateBuilder v3CertificateBuilder = new JcaX509v3CertificateBuilder(
                     issuer, BigInteger.ONE, dateFrom, dateTo,
                     request.getSubject(), rsaPublicKeyOfSubject);
+            
+            //neke default ekstenzije
+            v3CertificateBuilder.addExtension(Extension.basicConstraints, true,
+                    new BasicConstraints(18));
+            v3CertificateBuilder.addExtension(Extension.keyUsage, false,
+                    new X509KeyUsage(X509KeyUsage.nonRepudiation
+                            | X509KeyUsage.decipherOnly));
 
             ContentSigner signerCA = new JcaContentSignerBuilder("SHA1WithRSA")
                     .build(privateKeyCA);
