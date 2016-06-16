@@ -14,16 +14,20 @@ public class mainProgram {
         String pathCertExport = "resources/exportCertificate.cer";
         String password = "password";
         CertController controller = new CertController(path, password);
+        System.out.println("ISPIS POCETNOG STANJA");
         controller.ispis(controller.getCertificateInfoList(true));
         
+        System.out.println("GENERISANJE CSR");
         controller.generateCSR(alias1);
+        System.out.println("ISPIS CSR");
         controller.previewCSR(alias1);
+        System.out.println("POTPISIVANJE SERTIFIKATA");
         controller.signX509Certificate(alias1);
         
-        System.out.println(controller.printX509Certificate(alias1));
         
-        
+        System.out.println("ISPIS KRAJNJEG STANJA");
         controller.ispis(controller.getCertificateInfoList(true));
+        System.out.println("PAMCENJE U DRUGI STORE");
         controller.exportToPKCS12WithAES(pathExport, password);
         // ovo bi trebalo uvek zvati pri zatvaranju
         // sad ne treba jer ce pokvariti test

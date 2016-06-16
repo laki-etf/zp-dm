@@ -117,6 +117,37 @@ public class CertCore {
 
         return r;
     }
+    
+    //TODO ovo ne valja plus extenzije
+    public HashMap<String, String> readX509Certificate(X509Certificate x509Cert) {
+        HashMap<String, String> r = new HashMap<String, String>();
+
+        for ( final String field : (x509Cert.getSubjectDN().toString()).split(",") ) {
+            if ( field.startsWith("CN=") ) {
+                r.put("commonName", field.substring(3));
+            }
+            if ( field.startsWith("OU=") ) {
+                r.put("organizationalUnit", field.substring(3));
+            }
+            if ( field.startsWith("O=") ) {
+                r.put("organizationalName", field.substring(2));
+            }
+            if ( field.startsWith("L=") ) {
+                r.put("localityName", field.substring(2));
+            }
+            if ( field.startsWith("ST=") ) {
+                r.put("stateName", field.substring(3));
+            }
+            if ( field.startsWith("C=") ) {
+                r.put("countryName", field.substring(2));
+            }
+            if ( field.startsWith("E=") ) {
+                r.put("emailAddress", field.substring(2));
+            }
+        }
+
+        return r;
+    }
 
     //generisanje para kljuceva za kriptovanje pri import/export
     private SecretKeySpec buildSecretKeySpec(String password)

@@ -9,6 +9,7 @@ import java.security.Key;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
@@ -19,9 +20,11 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateHolder;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.util.PublicKeyFactory;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.util.io.pem.PemObject;
@@ -30,6 +33,10 @@ import org.bouncycastle.util.io.pem.PemWriter;
 import front.CertificateInfo;
 
 public class CertController {
+
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
 
     private CertCore cc;
     public final String aliasCA = "tamara";
@@ -177,7 +184,6 @@ public class CertController {
             KeyStore keyStore = cc.getKeyStore();
             X509Certificate certificate = (X509Certificate) keyStore
                     .getCertificate(alias);
-            
             certificatePrint = certificate.toString();
             return certificatePrint;
 
@@ -186,13 +192,13 @@ public class CertController {
         }
         return certificatePrint;
     }
-    
-    private String certificateAsPem(X509Certificate x509) throws CertificateEncodingException, IOException {
+
+    private String certificateAsPem(X509Certificate x509)
+            throws CertificateEncodingException, IOException {
         StringWriter sw = new StringWriter();
         PemWriter writer = new PemWriter(sw);
         PemObject pemObject = new PemObject("CERTIFICATE", x509.getEncoded());
-        
-        
+
         try {
             writer.writeObject(pemObject);
             writer.flush();
@@ -235,14 +241,12 @@ public class CertController {
 
                 X509Certificate certificate = (X509Certificate) keyStore
                         .getCertificate(alias);
-
                 PublicKey publicKey = certificate.getPublicKey();
                 PrivateKey privateKey = (PrivateKey) keyStore.getKey(alias,
                         null);
-                X500Name x500name = new JcaX509CertificateHolder(certificate)
-                        .getSubject();
-
-                HashMap<String, String> attributes = cc.readX500Name(x500name);
+                
+                HashMap<String, String> attributes = cc
+                        .readX509Certificate(certificate);
 
                 boolean isPotpisan = true;
                 try {
@@ -267,7 +271,15 @@ public class CertController {
                         attributes.get("emailAddress"),
                         bytesToHex(publicKey.getEncoded()),
                         bytesToHex(privateKey.getEncoded()), isPotpisan);
+                if(isPotpisan)
+                    certificateInfo.setSignature(bytesToHex(certificate
+                            .getSignature()));
+                
+                certificateInfo.setPreview(certificate.toString());
+                certificateInfo.setPem(certificateAsPem(certificate));
+                
                 list.add(certificateInfo);
+
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -279,8 +291,12 @@ public class CertController {
     // za test potrebe; ispisuje listu u konzolu
     public void ispis(List<CertificateInfo> list) {
         for (CertificateInfo ci : list) {
-            System.out.println("CERT");
+            System.out.println("CERT-INFO");
             System.out.println(ci.ispis());
+            System.out.println("CERT-PREVIEW");
+            System.out.println(ci.getPreview());
+            System.out.println("CERT-PEM");
+            System.out.println(ci.getPem());
         }
     }
 

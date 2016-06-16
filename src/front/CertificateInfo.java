@@ -8,6 +8,8 @@ import java.util.Date;
 public class CertificateInfo {
 
     private String alias;
+    private String preview;
+    private String pem;
     private Integer keySize;
     private String version = "v3";
     private Date dateFrom;
@@ -23,12 +25,17 @@ public class CertificateInfo {
     private String publicKey;
     private String privateKey;
     private boolean isSigned;
+    private String signature;
+    private String alternativeNames;
+    private String basicConstraints;
+    private String keyUsage;
 
-    public CertificateInfo(String alias, Integer keySize, Date dateFrom, Date dateTo,
-            BigInteger serialNumber, String commonName,
+    public CertificateInfo(String alias, Integer keySize, Date dateFrom,
+            Date dateTo, BigInteger serialNumber, String commonName,
             String organizationalUnit, String organizationalName,
             String localityName, String stateName, String countryName,
-            String emailAddress, String publicKey, String privateKey, boolean isSigned) {
+            String emailAddress, String publicKey, String privateKey,
+            boolean isSigned) {
         this.alias = alias;
         this.keySize = keySize;
         this.dateFrom = dateFrom;
@@ -45,47 +52,39 @@ public class CertificateInfo {
         this.privateKey = privateKey;
         this.isSigned = isSigned;
     }
-    
+
     public String ispis() {
         DateFormat df = new SimpleDateFormat("dd.MM.yyyy.");
-        return ("alias " + alias + "\n" +
-                "keySize " + keySize + "\n" +
-                "dateFrom " + df.format(dateFrom) + "\n" +
-                "dateTo " + df.format(dateTo) + "\n" +
-                "serialNumber " + serialNumber + "\n" +
-                "commonName " + commonName + "\n" +
-                "organizationalUnit " + organizationalUnit + "\n" +
-                "organizationalName " + organizationalName + "\n" +
-                "localityName " + localityName + "\n" +
-                "stateName " + stateName + "\n" +
-                "countryName " + countryName + "\n" +
-                "emailAddress " + emailAddress + "\n" +
-                "publicKey " + publicKey + "\n" +
-                "privateKey " + privateKey + "\n" +
-                "isSigned " + isSigned + "\n");
+        return ("alias " + alias + "\n" + "keySize " + keySize + "\n"
+                + "dateFrom " + df.format(dateFrom) + "\n" + "dateTo "
+                + df.format(dateTo) + "\n" + "serialNumber " + serialNumber
+                + "\n" + "commonName " + commonName + "\n"
+                + "organizationalUnit " + organizationalUnit + "\n"
+                + "organizationalName " + organizationalName + "\n"
+                + "localityName " + localityName + "\n" + "stateName "
+                + stateName + "\n" + "countryName " + countryName + "\n"
+                + "emailAddress " + emailAddress + "\n" + "publicKey "
+                + publicKey + "\n" + "privateKey " + privateKey + "\n"
+                + "isSigned " + isSigned + "\n");
     }
-    
+
     @Override
-    public String toString(){
-    	String s="";
-    	if(isSigned)s = " - signed"; 
-    	return alias+s;
+    public String toString() {
+        String s = "";
+        if(isSigned)
+            s = " - signed";
+        return alias + s;
     }
-    
-    
-    
-    
-    
-    
+
     //GET & SET
     public String getAlias() {
         return alias;
     }
-    
+
     public void setAlias(String alias) {
         this.alias = alias;
     }
-    
+
     public Integer getKeySize() {
         return keySize;
     }
@@ -200,5 +199,53 @@ public class CertificateInfo {
 
     public void setSigned(boolean isSigned) {
         this.isSigned = isSigned;
+    }
+
+    public String getSignature() {
+        return signature;
+    }
+
+    public void setSignature(String signature) {
+        this.signature = signature;
+    }
+
+    public String getAlternativeNames() {
+        return alternativeNames;
+    }
+
+    public void setAlternativeNames(String alternativeNames) {
+        this.alternativeNames = alternativeNames;
+    }
+
+    public String getBasicConstraints() {
+        return basicConstraints;
+    }
+
+    public void setBasicConstraints(String basicConstraints) {
+        this.basicConstraints = basicConstraints;
+    }
+
+    public String getKeyUsage() {
+        return keyUsage;
+    }
+
+    public void setKeyUsage(String keyUsage) {
+        this.keyUsage = keyUsage;
+    }
+
+    public String getPreview() {
+        return preview;
+    }
+
+    public void setPreview(String preview) {
+        this.preview = preview;
+    }
+
+    public String getPem() {
+        return pem;
+    }
+
+    public void setPem(String pem) {
+        this.pem = pem;
     }
 }
