@@ -22,6 +22,7 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.BoxLayout;
 import javax.swing.JList;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -70,7 +71,10 @@ public class X509CertWindow {
 			exportPairButton.setEnabled(true);
 			detailsButton.setEnabled(true);
 			signCertButton.setEnabled(true);
-			if(selectedPair.isSigned())exportCertButton.setEnabled(true);
+			if(selectedPair.isSigned()){
+				exportCertButton.setEnabled(true);
+				signCertButton.setEnabled(false);
+			}
 		} else{
 			exportPairButton.setEnabled(false);
 			detailsButton.setEnabled(false);
@@ -207,6 +211,18 @@ public class X509CertWindow {
 		detailsButton = new JButton("Pair Details");
 		detailsButton.setEnabled(false);
 		Buttons.add(detailsButton);
+		detailsButton.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JTextArea tarea = new JTextArea(controller.printX509Certificate(selectedPair.getAlias()));
+				tarea.setEditable(false);
+				tarea.setSize(600, 600);
+				tarea.setLineWrap(true);
+				tarea.setWrapStyleWord(true);
+				JOptionPane.showMessageDialog(frame, tarea);
+			}
+		});
 		
 		signCertButton = new JButton("Sign Certificate");
 		signCertButton.setEnabled(false);
@@ -215,9 +231,19 @@ public class X509CertWindow {
 			
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				controller.signX509Certificate(selectedPair.getAlias());
-				pairList.setListData(controller.getCertificateInfoList(false).toArray());
-				refreshButtons();
+				controller.generateCSR(selectedPair.getAlias());
+				JTextArea tarea = new JTextArea(controller.printX509Certificate(selectedPair.getAlias()));
+				tarea.setEditable(false);
+				tarea.setSize(600, 600);
+				tarea.setLineWrap(true);
+				tarea.setWrapStyleWord(true);
+				Object[] ob = {tarea};
+				int result = JOptionPane.showConfirmDialog(null, ob, "Certificate", JOptionPane.OK_CANCEL_OPTION);
+				if (result == JOptionPane.OK_OPTION){
+					controller.signX509Certificate(selectedPair.getAlias());
+					pairList.setListData(controller.getCertificateInfoList(false).toArray());
+					refreshButtons();
+				}
 			}
 		});
 		
@@ -230,14 +256,12 @@ public class X509CertWindow {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				JFileChooser chooser = new JFileChooser();
-//			    FileNameExtensionFilter filter = new FileNameExtensionFilter(
-//			        "JPG & GIF Images", "jpg", "gif");
-//			    chooser.setFileFilter(filter);
 			    int returnVal = chooser.showSaveDialog(frame);
 			    if(returnVal == JFileChooser.APPROVE_OPTION) {
-			       System.out.println("You chose to open this file: " +
-			            chooser.getSelectedFile().getName());
-			       
+			    	String path = chooser.getSelectedFile().getPath();
+		            if (!path.endsWith(".cer"))
+		                path += ".cer";
+		            controller.exportX509Certificate(selectedPair.getAlias(), path);
 			    }
 			}
 		});
