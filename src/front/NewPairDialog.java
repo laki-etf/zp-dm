@@ -2,6 +2,7 @@ package front;
 
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.TextArea;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -13,6 +14,8 @@ import javax.swing.UIManager;
 
 import java.awt.GridLayout;
 
+import javax.swing.JOptionPane;
+import javax.swing.JPasswordField;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.JComboBox;
@@ -25,8 +28,10 @@ import java.awt.event.ActionListener;
 import javax.swing.SpinnerDateModel;
 
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Random;
 
 import javax.swing.JCheckBox;
@@ -81,29 +86,36 @@ public class NewPairDialog extends JDialog {
 	private JSpinner keySizeSpinner;
 	private JLabel extLabel;
 	private JLabel placeHolderLabel3;
-	private JLabel basConstLabel;
-	private JTextField BasicConstrTextField;
-	private JCheckBox basicConstrCheckBox;
-	private JLabel placeHolderLabel4;
-	private JLabel issAltNameLabel;
-	private JTextField alrIssNameTextField;
-	private JCheckBox issAltNameCheckBox;
-	private JLabel placeHolderLabel5;
-	private JLabel keyUsageLabel;
-	private JTextArea keyUsageTextArea;
-	private JCheckBox keyUsageCheckBox;
-	private JLabel placeHolderLabel6;
+	private JButton basConstButton;
+	private JButton issAltNameButton;
+	private JButton keyUsageButton;
 	private JLabel necessaryLabel;
 	private JPanel pairPanel;
-	private JLabel publExpLabel;
-	private JLabel privExpLabel;
-	private JPanel exponentPanel;
 	private JLabel errorLabel;
-	private JPanel panel;
-	private JLabel modLabel;
-	private JLabel modValLabel;
 	private CertController controller;
 	private JTextField eTextField;
+	
+	private boolean bcIsneeded;
+	private boolean bcIsCA;
+	private Integer bcChainLength;
+	private boolean bcIsCritical;
+	private boolean anIsNeeded;
+	private List<String> altNames;
+	private boolean anIsCritical;
+	private boolean kuIsNeeded;
+	private boolean kuIsCritical;
+	private int kuDigitalSignature;
+	private int kuNonRepudiation;
+	private int kuKeyEncipherment;
+	private int kuDataEncipherment;
+	private int kuDecipherOnly;
+	private int kuKeyCertSign;
+	private int kuCRLSign;
+	private int kuEncipherOnly;
+	private int kuKeyAgreement;
+
+	
+	
 	/**
 	 * Create the dialog.
 	 * @throws EmptyException 
@@ -322,57 +334,90 @@ public class NewPairDialog extends JDialog {
 				dataPanel.add(placeHolderLabel3);
 			}
 			{
-				basConstLabel = new JLabel("Basic Constraints:");
-				dataPanel.add(basConstLabel);
+				basConstButton = new JButton("Basic Constraints");
+				dataPanel.add(basConstButton);
+				basConstButton.setActionCommand("Basic Constraints");
+				basConstButton.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						JCheckBox isCaChBox = new JCheckBox("Is CA");
+						JLabel clLabel = new JLabel("Chain Length");
+						JSpinner clSpinner = new JSpinner();
+						clSpinner.setModel(new SpinnerNumberModel());
+						JCheckBox isCritChBox = new JCheckBox("Critical");
+				        Object[] ob = {isCaChBox, clLabel, clSpinner,isCritChBox};
+				        int result = JOptionPane.showConfirmDialog(null, ob, "Basic Constraints", JOptionPane.OK_CANCEL_OPTION);
+				        if (result == JOptionPane.OK_OPTION) {
+				        	bcIsneeded = true;
+				        	bcIsCritical = isCritChBox.isSelected();
+				        	bcIsCA = isCaChBox.isSelected();
+				        	bcChainLength = (Integer) clSpinner.getValue();
+				        }
+					}
+				});
 			}
 			{
-				BasicConstrTextField = new JTextField();
-				basConstLabel.setLabelFor(BasicConstrTextField);
-				dataPanel.add(BasicConstrTextField);
-				BasicConstrTextField.setColumns(10);
+				issAltNameButton = new JButton("Issuer Alternative Name");
+				dataPanel.add(issAltNameButton);
+				issAltNameButton.setActionCommand("Issuer Alternative Name");
+				issAltNameButton.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						JLabel anLabel = new JLabel("Alternative Names (Split with space)");
+						JTextArea anarea= new JTextArea(5,20);
+						JCheckBox isCritChBox = new JCheckBox("Critical");
+				        Object[] ob = {anLabel, anarea, isCritChBox};
+				        int result = JOptionPane.showConfirmDialog(null, ob, "Issuer Alternative Name", JOptionPane.OK_CANCEL_OPTION);
+				        if (result == JOptionPane.OK_OPTION) {
+				        	anIsNeeded = true;
+				        	anIsCritical = isCritChBox.isSelected();
+				        	String[] arr = anarea.getText().split(" ");
+				        	altNames = new ArrayList<String>();
+				        	for (String an : arr) {
+								altNames.add(an);
+							}
+				        }
+					}
+				});
 			}
 			{
-				placeHolderLabel4 = new JLabel("");
-				dataPanel.add(placeHolderLabel4);
-			}
-			{
-				basicConstrCheckBox = new JCheckBox("critical");
-				dataPanel.add(basicConstrCheckBox);
-			}
-			{
-				issAltNameLabel = new JLabel("Issuer Alternative Name: ");
-				dataPanel.add(issAltNameLabel);
-			}
-			{
-				alrIssNameTextField = new JTextField();
-				issAltNameLabel.setLabelFor(alrIssNameTextField);
-				dataPanel.add(alrIssNameTextField);
-				alrIssNameTextField.setColumns(10);
-			}
-			{
-				placeHolderLabel5 = new JLabel("");
-				dataPanel.add(placeHolderLabel5);
-			}
-			{
-				issAltNameCheckBox = new JCheckBox("critical");
-				dataPanel.add(issAltNameCheckBox);
-			}
-			{
-				keyUsageLabel = new JLabel("Key Usage:");
-				dataPanel.add(keyUsageLabel);
-			}
-			{
-				keyUsageTextArea = new JTextArea();
-				keyUsageLabel.setLabelFor(keyUsageTextArea);
-				dataPanel.add(keyUsageTextArea);
-			}
-			{
-				placeHolderLabel6 = new JLabel("");
-				dataPanel.add(placeHolderLabel6);
-			}
-			{
-				keyUsageCheckBox = new JCheckBox("critical");
-				dataPanel.add(keyUsageCheckBox);
+				keyUsageButton = new JButton("Key Usage");
+				dataPanel.add(keyUsageButton);
+				keyUsageButton.setActionCommand("Key Usage");
+				keyUsageButton.addActionListener(new ActionListener() {
+					
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						JCheckBox digSigChkBox = new JCheckBox("Digital Signature");
+						JCheckBox nonRepChkBox = new JCheckBox("None Repudation");
+						JCheckBox keyEncChkBox = new JCheckBox("Key Enchiperment");
+						JCheckBox dataEncChkBox = new JCheckBox("Data Enchiperment");
+						JCheckBox keyAgrChkBox = new JCheckBox("Key Agreement");
+						JCheckBox keyCertSignChkBox = new JCheckBox("Key Certifcate sign");
+						JCheckBox cRLSignChkBox = new JCheckBox("Crl sign");
+						JCheckBox encipherOnlyChkBox = new JCheckBox("Enchiper onely");
+						JCheckBox decipherOnlyChkBox = new JCheckBox("Dechiper onely");
+						JCheckBox isCritChBox = new JCheckBox("Critical");
+				        Object[] ob = {digSigChkBox, nonRepChkBox, keyEncChkBox, dataEncChkBox, keyAgrChkBox, keyCertSignChkBox,
+				        		cRLSignChkBox, encipherOnlyChkBox, decipherOnlyChkBox, isCritChBox};
+				        int result = JOptionPane.showConfirmDialog(null, ob, "Key Usage", JOptionPane.OK_CANCEL_OPTION);
+				        if (result == JOptionPane.OK_OPTION) {
+				        	kuIsNeeded = true;
+				        	kuIsCritical = isCritChBox.isSelected();
+				        	kuDigitalSignature = digSigChkBox.isSelected()?1:0;
+				        	kuNonRepudiation = nonRepChkBox.isSelected()?1:0;
+				        	kuKeyEncipherment = keyEncChkBox.isSelected()?1:0;
+				        	kuDataEncipherment = dataEncChkBox.isSelected()?1:0;
+				        	kuKeyAgreement = keyAgrChkBox.isSelected()?1:0;
+				        	kuKeyCertSign = keyCertSignChkBox.isSelected()?1:0;
+				        	kuCRLSign = cRLSignChkBox.isSelected()?1:0;
+				        	kuEncipherOnly = encipherOnlyChkBox.isSelected()?1:0;
+				        	kuDecipherOnly = decipherOnlyChkBox.isSelected()?1:0;
+				        }
+					}
+				});
 			}
 		}
 		{
@@ -440,8 +485,11 @@ public class NewPairDialog extends JDialog {
 							isEmpty("e", emailAddress);
 							controller.generatePairOfKeys(alias, keySize, dateFrom, dateTo,
 							        serialNumber, commonName, organizationalUnit, organizationalName,
-							        localityName, stateName, countryName, emailAddress, false, false,
-							        null, false, false, null, false, false, false, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+							        localityName, stateName, countryName, emailAddress, bcIsneeded, bcIsCA,
+							        bcChainLength, bcIsCritical, anIsNeeded, altNames, anIsCritical, 
+							        kuIsNeeded, kuIsCritical, kuDigitalSignature, kuNonRepudiation,
+							        kuKeyEncipherment, kuDataEncipherment, kuKeyAgreement,
+							        kuKeyCertSign, kuCRLSign, kuEncipherOnly, kuDecipherOnly);
 							dispose();
 						} catch (EmptyException e1) {
 							errorLabel.setText(e1.getMessage());
