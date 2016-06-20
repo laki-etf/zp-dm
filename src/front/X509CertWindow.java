@@ -240,9 +240,10 @@ public class X509CertWindow {
 			        if (result == JOptionPane.OK_OPTION) {
 			            passwordValue = password.getText();
 			            String path = chooser.getSelectedFile().getPath();
+			            boolean noAES = true;
 			            if (!path.endsWith(".p12"))
 			                path += ".p12";
-			            if(passwordValue.isEmpty()){
+			            if(noAES){
 			            	controller.exportKeyPairToPKCS12NoAES(selectedPair.getAlias(), path, passwordValue);
 			            } else {
 			            	controller.exportKeyPairToPKCS12WithAES(selectedPair.getAlias(), path, passwordValue);
