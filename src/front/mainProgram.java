@@ -22,6 +22,9 @@ public class mainProgram {
         System.out.println("ISPIS POCETNOG STANJA");
         controller.ispis(controller.getCertificateInfoList(true));
 
+        System.out.println("UCITAVANJE FAJLA");
+        controller.importKeyPairNoAES("ispravan", "resources/ispravan.p12", "kljuc");
+        
         System.out.println("DODAVANJE PARA KLJUCEVA SA EKSTENZIAJAMA");
         List<String> listAN = new ArrayList<String>();
         listAN.add("makise.etf.rs");

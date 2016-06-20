@@ -198,6 +198,7 @@ public class X509CertWindow {
 			    FileNameExtensionFilter filter = new FileNameExtensionFilter("PKCS12 certificates", "p12");
 			    chooser.addChoosableFileFilter(filter);
 			    int returnVal = chooser.showOpenDialog(frame);
+			    boolean noAES = true;
 			    if(returnVal == JFileChooser.APPROVE_OPTION) {
 			    	JLabel jPassword = new JLabel("Password");
 			        JTextField password = new JPasswordField();
@@ -206,7 +207,7 @@ public class X509CertWindow {
 			        String passwordValue="";
 			        if (result == JOptionPane.OK_OPTION) {
 			            passwordValue = password.getText();
-			            if(passwordValue.isEmpty()){
+			            if(noAES){
 			            	controller.importKeyStoreNoAES(chooser.getSelectedFile().getPath(), passwordValue);
 			            } else {
 			            	controller.importKeyStoreWithAES(chooser.getSelectedFile().getPath(), passwordValue);
