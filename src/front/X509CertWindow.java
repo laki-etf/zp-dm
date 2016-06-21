@@ -199,19 +199,21 @@ public class X509CertWindow {
 			    FileNameExtensionFilter filter = new FileNameExtensionFilter("PKCS12 certificates", "p12");
 			    chooser.addChoosableFileFilter(filter);
 			    int returnVal = chooser.showOpenDialog(frame);
-			    boolean noAES = true;
 			    if(returnVal == JFileChooser.APPROVE_OPTION) {
 			    	JLabel jPassword = new JLabel("Password");
 			        JTextField password = new JPasswordField();
-                    JCheckBox noAESChBox = new JCheckBox("no AES?");
-			        Object[] ob = {jPassword, password, noAESChBox};
+			        JCheckBox aesChBox = new JCheckBox("AES");
+			        Object[] ob = {jPassword, password,aesChBox};
 			        int result = JOptionPane.showConfirmDialog(null, ob, "Password", JOptionPane.OK_CANCEL_OPTION);
 			        String passwordValue="";
+			        System.out.print(chooser.getSelectedFile().getPath());
 			        if (result == JOptionPane.OK_OPTION) {
 			            passwordValue = password.getText();
-			            if(noAESChBox.isSelected()){
+			           System.out.print(passwordValue);
+			            if(!aesChBox.isSelected()){
 			            	controller.importKeyStoreNoAES(chooser.getSelectedFile().getPath(), passwordValue);
 			            } else {
+					           System.out.print(passwordValue);
 			            	controller.importKeyStoreWithAES(chooser.getSelectedFile().getPath(), passwordValue);
 			            }
 			            pairList.setListData(controller.getCertificateInfoList(false).toArray());
@@ -231,22 +233,21 @@ public class X509CertWindow {
 			public void actionPerformed(ActionEvent e) {
 				JFileChooser chooser = new JFileChooser();
 //			    FileNameExtensionFilter filter = new FileNameExtensionFilter("p12");
-//			    chooser.setFileFilter(filter);t
+//			    chooser.setFileFilter(filter);
 			    int returnVal = chooser.showSaveDialog(frame);
 			    if(returnVal == JFileChooser.APPROVE_OPTION) {
 			    	JLabel jPassword = new JLabel("Password");
 			        JTextField password = new JPasswordField();
-			        JCheckBox noAESChBox = new JCheckBox("no AES?");
-			        Object[] ob = {jPassword, password, noAESChBox};
+			        JCheckBox aesChBox = new JCheckBox("AES");
+			        Object[] ob = {jPassword, password,aesChBox};
 			        int result = JOptionPane.showConfirmDialog(null, ob, "Password", JOptionPane.OK_CANCEL_OPTION);
 			        String passwordValue="";
 			        if (result == JOptionPane.OK_OPTION) {
 			            passwordValue = password.getText();
 			            String path = chooser.getSelectedFile().getPath();
-			            boolean noAES = true;
 			            if (!path.endsWith(".p12"))
 			                path += ".p12";
-			            if(noAESChBox.isSelected()){
+			            if(!aesChBox.isSelected()){
 			            	controller.exportKeyPairToPKCS12NoAES(selectedPair.getAlias(), path, passwordValue);
 			            } else {
 			            	controller.exportKeyPairToPKCS12WithAES(selectedPair.getAlias(), path, passwordValue);
