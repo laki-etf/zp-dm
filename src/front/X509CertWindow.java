@@ -13,6 +13,7 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.util.ArrayList;
 
+import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
@@ -202,12 +203,13 @@ public class X509CertWindow {
 			    if(returnVal == JFileChooser.APPROVE_OPTION) {
 			    	JLabel jPassword = new JLabel("Password");
 			        JTextField password = new JPasswordField();
-			        Object[] ob = {jPassword, password};
+                    JCheckBox noAESChBox = new JCheckBox("no AES?");
+			        Object[] ob = {jPassword, password, noAESChBox};
 			        int result = JOptionPane.showConfirmDialog(null, ob, "Password", JOptionPane.OK_CANCEL_OPTION);
 			        String passwordValue="";
 			        if (result == JOptionPane.OK_OPTION) {
 			            passwordValue = password.getText();
-			            if(noAES){
+			            if(noAESChBox.isSelected()){
 			            	controller.importKeyStoreNoAES(chooser.getSelectedFile().getPath(), passwordValue);
 			            } else {
 			            	controller.importKeyStoreWithAES(chooser.getSelectedFile().getPath(), passwordValue);
@@ -229,12 +231,13 @@ public class X509CertWindow {
 			public void actionPerformed(ActionEvent e) {
 				JFileChooser chooser = new JFileChooser();
 //			    FileNameExtensionFilter filter = new FileNameExtensionFilter("p12");
-//			    chooser.setFileFilter(filter);
+//			    chooser.setFileFilter(filter);t
 			    int returnVal = chooser.showSaveDialog(frame);
 			    if(returnVal == JFileChooser.APPROVE_OPTION) {
 			    	JLabel jPassword = new JLabel("Password");
 			        JTextField password = new JPasswordField();
-			        Object[] ob = {jPassword, password};
+			        JCheckBox noAESChBox = new JCheckBox("no AES?");
+			        Object[] ob = {jPassword, password, noAESChBox};
 			        int result = JOptionPane.showConfirmDialog(null, ob, "Password", JOptionPane.OK_CANCEL_OPTION);
 			        String passwordValue="";
 			        if (result == JOptionPane.OK_OPTION) {
@@ -243,7 +246,7 @@ public class X509CertWindow {
 			            boolean noAES = true;
 			            if (!path.endsWith(".p12"))
 			                path += ".p12";
-			            if(noAES){
+			            if(noAESChBox.isSelected()){
 			            	controller.exportKeyPairToPKCS12NoAES(selectedPair.getAlias(), path, passwordValue);
 			            } else {
 			            	controller.exportKeyPairToPKCS12WithAES(selectedPair.getAlias(), path, passwordValue);

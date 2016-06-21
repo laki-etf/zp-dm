@@ -40,7 +40,7 @@ public class CertController {
     }
 
     private CertCore cc;
-    public final String aliasCA = "tamara";
+    public final String aliasCA = "lakisa";
     private HashMap<String, PKCS10CertificationRequest> setCSRs;
     private String pathDefault;
     private String passwordDefault;
